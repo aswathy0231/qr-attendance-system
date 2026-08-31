@@ -3,5 +3,25 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+
+    # Week 2 - Authentication
     path('api/', include('accounts.urls')),
+
+    # Week 3 - Student CRUD
+    path('api/students/', include('students.urls')),
+    
+    # Week 3 - Teacher CRUD
+    path('api/teachers/', include('teachers.urls')),
+    
+    # Week 3 - Department CRUD
+    path('api/departments/', include('departments.urls')),
+    
+    # Week 3 - Classes CRUD
+    path('api/classes/', include('classes.urls')),
+    
+    # Week 3 - Subject CRUD
+    path('api/subjects/', include('subjects.urls')),
+    
+    # Week 3 - Timetables CRUD
+    path('api/timetables/', include('timetables.urls')),
 ]

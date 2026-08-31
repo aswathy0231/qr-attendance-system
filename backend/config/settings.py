@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'subjects',
     'attendance',
     'reports',
+    'timetables',
 ]
 
 
