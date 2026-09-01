@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Teacher Dashboard</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f8fc;
+            color: #151a2d;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(
+                135deg,
+                #1455d1,
+                #2d70e5
+            );
+
+            color: white;
+            padding: 25px 40px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 6px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* Main content */
+        .container {
+            max-width: 1000px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        /* Class card */
+        .card {
+            background: white;
+            border-radius: 18px;
+            padding: 25px;
+            margin-bottom: 25px;
+
+            box-shadow:
+                0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .card h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .class-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .class-info {
+            color: #667085;
+            margin-bottom: 6px;
+        }
+
+        .assignment {
+            color: #98a2b3;
+            font-size: 13px;
+        }
+
+        /* Start button */
+        .start-button {
+            width: 100%;
+            padding: 15px;
+
+            border: none;
+            border-radius: 12px;
+
+            background-color: #175cd3;
+            color: white;
+
+            font-size: 16px;
+            font-weight: bold;
+
+            cursor: pointer;
+        }
+
+        .start-button:hover {
+            background-color: #124bb3;
+        }
+
+        /* Session */
+        .session {
+            text-align: center;
+        }
+
+        .session h2 {
+            margin-bottom: 8px;
+        }
+
+        .session-id {
+            color: #667085;
+            margin-bottom: 20px;
+        }
+
+        /* QR */
+        .qr-container {
+            margin: 20px auto;
+        }
+
+        .qr-container img {
+            width: 300px;
+            height: 300px;
+            object-fit: contain;
+        }
+
+        .instruction {
+            color: #667085;
+            margin-bottom: 20px;
+        }
+
+        /* End button */
+        .end-button {
+            width: 100%;
+            padding: 14px;
+
+            border: 1px solid #d92d20;
+            border-radius: 12px;
+
+            background-color: white;
+            color: #d92d20;
+
+            font-size: 16px;
+            font-weight: bold;
+
+            cursor: pointer;
+        }
+
+        .end-button:hover {
+            background-color: #fff1f0;
+        }
+
+        /* Status */
+        .status {
+            display: inline-block;
+
+            padding: 8px 15px;
+
+            border-radius: 20px;
+
+            background-color: #e7f6ec;
+            color: #16803a;
+
+            font-size: 13px;
+            font-weight: bold;
+
+            margin-bottom: 15px;
+        }
+
+        /* Hidden */
+        .hidden {
+            display: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 23px;
+            }
+
+            .container {
+                padding: 0 15px;
+            }
+
+            .qr-container img {
+                width: 250px;
+                height: 250px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- HEADER -->
+    <header class="header">
+        <h1>Teacher Dashboard</h1>
+        <p>Hello, Teacher One</p>
+    </header>
+
+
+    <!-- MAIN CONTENT -->
+    <main class="container">
+
+        <!-- CURRENT CLASS -->
+        <section class="card">
+
+            <h2>Current Class</h2>
+
+            <div class="class-name">
+                Python
+            </div>
+
+            <div class="class-info">
+                MCA • Semester 1
+            </div>
+
+            <div class="assignment">
+                Assignment ID: 3
+            </div>
+
+        </section>
+
+
+        <!-- START ATTENDANCE -->
+        <section
+            class="card"
+            id="start-section"
+        >
+
+            <button
+                class="start-button"
+                onclick="startAttendance()"
+            >
+                Start Attendance
+            </button>
+
+        </section>
+
+
+        <!-- ACTIVE SESSION -->
+        <section
+            class="card session hidden"
+            id="session-section"
+        >
+
+            <div class="status">
+                Attendance Session Active
+            </div>
+
+            <h2>
+                Scan the QR Code
+            </h2>
+
+            <div class="session-id">
+                Session ID:
+                <span id="session-id"></span>
+            </div>
+
+            <!-- QR CODE -->
+            <div class="qr-container">
+                <img
+                    id="qr-image"
+                    src=""
+                    alt="Attendance QR Code"
+                >
+            </div>
+
+            <p class="instruction">
+                Students can scan this QR code
+                to mark their attendance.
+            </p>
+
+            <button
+                class="end-button"
+                onclick="endAttendance()"
+            >
+                End Attendance
+            </button>
+
+        </section>
+
+    </main>
+
+
+    <script>
+
+        /*
+         * Temporary assignment ID.
+         *
+         * Later this will come from the
+         * teacher's selected class/subject.
+         */
+        const assignmentId = 3;
+
+
+        /*
+         * Stores the currently active
+         * attendance session.
+         */
+        let sessionId = null;
+
+
+        /*
+         * START ATTENDANCE
+         *
+         * Calls the Django API to create
+         * a new attendance session.
+         */
+        async function startAttendance() {
+
+            try {
+
+                const response = await fetch(
+                    '/api/attendance/sessions/create/',
+                    {
+                        method: 'POST',
+
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+
+                        body: JSON.stringify({
+                            assignment_id: assignmentId,
+                            duration_minutes: 10
+                        })
+                    }
+                );
+
+
+                const data = await response.json();
+
+
+                if (!response.ok) {
+
+                    alert(
+                        data.error ||
+                        'Failed to start attendance.'
+                    );
+
+                    return;
+                }
+
+
+                /*
+                 * Save session ID.
+                 */
+                sessionId = data.session_id;
+
+
+                /*
+                 * Display session ID.
+                 */
+                document.getElementById(
+                    'session-id'
+                ).textContent = sessionId;
+
+
+                /*
+                 * Display QR image.
+                 */
+                document.getElementById(
+                    'qr-image'
+                ).src = data.qr_image;
+
+
+                /*
+                 * Hide Start button.
+                 */
+                document.getElementById(
+                    'start-section'
+                ).classList.add('hidden');
+
+
+                /*
+                 * Show active session.
+                 */
+                document.getElementById(
+                    'session-section'
+                ).classList.remove('hidden');
+
+            }
+
+            catch (error) {
+
+                alert(
+                    'Could not connect to the server.'
+                );
+
+                console.error(error);
+            }
+        }
+
+
+        /*
+         * END ATTENDANCE
+         *
+         * Calls the Django API to end
+         * the currently active session.
+         */
+        async function endAttendance() {
+
+            if (sessionId === null) {
+                return;
+            }
+
+
+            try {
+
+                const response = await fetch(
+                    '/api/attendance/sessions/end/',
+                    {
+                        method: 'POST',
+
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+
+                        body: JSON.stringify({
+                            session_id: sessionId
+                        })
+                    }
+                );
+
+
+                const data = await response.json();
+
+
+                if (!response.ok) {
+
+                    alert(
+                        data.error ||
+                        'Failed to end attendance.'
+                    );
+
+                    return;
+                }
+
+
+                /*
+                 * Reset session.
+                 */
+                sessionId = null;
+
+
+                /*
+                 * Hide active session.
+                 */
+                document.getElementById(
+                    'session-section'
+                ).classList.add('hidden');
+
+
+                /*
+                 * Show Start button again.
+                 */
+                document.getElementById(
+                    'start-section'
+                ).classList.remove('hidden');
+
+
+                alert(
+                    'Attendance session ended.'
+                );
+
+            }
+
+            catch (error) {
+
+                alert(
+                    'Could not connect to the server.'
+                );
+
+                console.error(error);
+            }
+        }
+
+    </script>
+
+</body>
+</html>

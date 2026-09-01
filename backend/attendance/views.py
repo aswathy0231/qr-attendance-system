@@ -67,6 +67,57 @@ class CreateAttendanceSessionView(APIView):
         )
 
 
+class EndAttendanceSessionView(APIView):
+
+    def post(self, request):
+
+        session_id = request.data.get('session_id')
+
+        # Check required data
+        if not session_id:
+            return Response(
+                {
+                    'error': 'session_id is required'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Find the running session
+        try:
+            session = AttendanceSession.objects.get(
+                session_id=session_id,
+                status='Running'
+            )
+
+        except AttendanceSession.DoesNotExist:
+            return Response(
+                {
+                    'error': 'Attendance session not found or already ended'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # End the session
+        session.status = 'Ended'
+        session.end_time = timezone.now()
+
+        session.save(
+            update_fields=[
+                'status',
+                'end_time'
+            ]
+        )
+
+        return Response(
+            {
+                'message': 'Attendance session ended successfully',
+                'session_id': session.session_id,
+                'status': session.status,
+                'end_time': session.end_time
+            },
+            status=status.HTTP_200_OK
+        )
+
 class MarkAttendanceView(APIView):
 
     def post(self, request):

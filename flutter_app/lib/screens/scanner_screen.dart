@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 class ScannerScreen extends StatefulWidget {
@@ -10,11 +13,78 @@ class ScannerScreen extends StatefulWidget {
 
 class _ScannerScreenState extends State<ScannerScreen> {
   // Controller for the QR scanner
-  final MobileScannerController scannerController =
-      MobileScannerController();
+  final MobileScannerController scannerController = MobileScannerController();
 
-  // To prevent scanning the same QR multiple times
+  // Prevents the same QR from being processed multiple times
   bool hasScanned = false;
+
+  // Temporary student ID for testing.
+  // Later this will come from the logged-in student.
+  final int studentId = 1;
+
+  // Django backend URL.
+  //
+  // For Flutter Web running on the same computer:
+  static const String baseUrl = 'http://127.0.0.1:8000';
+
+  Future<void> _markAttendance(String qrToken) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/attendance/mark/'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'student_id': studentId,
+          'qr_token': qrToken,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (!mounted) return;
+
+      if (response.statusCode == 201) {
+        // Stop the scanner after successful attendance marking.
+        await scannerController.stop();
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Attendance marked successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        setState(() {
+          hasScanned = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              data['error'] ?? 'Failed to mark attendance',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        hasScanned = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not connect to the server.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   void _onDetect(BarcodeCapture capture) {
     if (hasScanned) return;
@@ -22,17 +92,13 @@ class _ScannerScreenState extends State<ScannerScreen> {
     for (final barcode in capture.barcodes) {
       final String? value = barcode.rawValue;
 
-      if (value != null) {
-        hasScanned = true;
+      if (value != null && value.isNotEmpty) {
+        setState(() {
+          hasScanned = true;
+        });
 
-        // Show the detected QR data
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('QR detected: $value'),
-          ),
-        );
-
-        print('QR Data: $value');
+        // Send QR token to Django backend.
+        _markAttendance(value);
 
         break;
       }
@@ -49,24 +115,19 @@ class _ScannerScreenState extends State<ScannerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF111517),
-
       body: SafeArea(
         child: Column(
           children: [
-
             // TOP BAR
             SizedBox(
               height: 65,
-
               child: Row(
                 children: [
-
                   // BACK BUTTON
                   IconButton(
                     onPressed: () {
                       Navigator.pop(context);
                     },
-
                     icon: const Icon(
                       Icons.arrow_back,
                       color: Colors.white,
@@ -92,7 +153,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
                     onPressed: () {
                       scannerController.toggleTorch();
                     },
-
                     icon: const Icon(
                       Icons.flash_on,
                       color: Colors.white,
@@ -109,29 +169,22 @@ class _ScannerScreenState extends State<ScannerScreen> {
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-
                   children: [
-
                     // BLUE SCANNING FRAME
                     Container(
                       width: 260,
                       height: 260,
-
                       decoration: BoxDecoration(
                         border: Border.all(
                           color: const Color(0xFF1976FF),
                           width: 3,
                         ),
-
-                        borderRadius:
-                            BorderRadius.circular(18),
+                        borderRadius: BorderRadius.circular(18),
                       ),
 
                       // REAL CAMERA SCANNER
                       child: ClipRRect(
-                        borderRadius:
-                            BorderRadius.circular(15),
-
+                        borderRadius: BorderRadius.circular(15),
                         child: MobileScanner(
                           controller: scannerController,
                           onDetect: _onDetect,
@@ -145,7 +198,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
                     const Text(
                       'Align the QR code within the frame\nto scan',
                       textAlign: TextAlign.center,
-
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 13,

@@ -1,131 +1,42 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'teacher_dashboard_screen.dart';
 
-import 'dashboard_screen.dart';
-import 'teacher_login_screen.dart';
-
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class TeacherLoginScreen extends StatefulWidget {
+  const TeacherLoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<TeacherLoginScreen> createState() => _TeacherLoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController studentIdController = TextEditingController();
+class _TeacherLoginScreenState extends State<TeacherLoginScreen> {
+  final TextEditingController teacherIdController = TextEditingController();
 
   final TextEditingController passwordController = TextEditingController();
 
   bool obscurePassword = true;
-  bool isLoading = false;
-
-  // Django backend
-  static const String baseUrl = 'http://127.0.0.1:8000';
 
   @override
   void dispose() {
-    studentIdController.dispose();
+    teacherIdController.dispose();
     passwordController.dispose();
     super.dispose();
   }
 
-  Future<void> studentLogin() async {
-    final username = studentIdController.text.trim();
-    final password = passwordController.text;
-
-    // Empty field validation
-    if (username.isEmpty) {
-      _showError('Please enter your Student ID.');
+  void login() {
+    if (teacherIdController.text.trim().isEmpty ||
+        passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter Teacher ID and password'),
+        ),
+      );
       return;
     }
 
-    if (password.isEmpty) {
-      _showError('Please enter your password.');
-      return;
-    }
-
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/login/'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'username': username,
-          'password': password,
-        }),
-      );
-
-      if (!mounted) return;
-
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        // Make sure this login belongs to a student.
-        if (data['role'] != 'student') {
-          setState(() {
-            isLoading = false;
-          });
-
-          _showError('This account is not a student account.');
-          return;
-        }
-
-        setState(() {
-          isLoading = false;
-        });
-
-        // Successful student login
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const DashboardScreen(),
-          ),
-        );
-      } else {
-        setState(() {
-          isLoading = false;
-        });
-
-        _showError(
-          data['error'] ?? 'Invalid username or password.',
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-
-      setState(() {
-        isLoading = false;
-      });
-
-      _showError(
-        'Could not connect to the server.',
-      );
-    }
-  }
-
-  void _showError(String message) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
-    );
-  }
-
-  void openTeacherLogin() {
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => const TeacherLoginScreen(),
+        builder: (context) => const TeacherDashboardScreen(),
       ),
     );
   }
@@ -173,7 +84,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 20),
 
               const Text(
-                'Student Login',
+                'Teacher Login',
                 style: TextStyle(
                   fontSize: 23,
                   fontWeight: FontWeight.bold,
@@ -183,7 +94,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 5),
 
               const Text(
-                'Sign in to continue',
+                'Sign in to manage attendance',
                 style: TextStyle(
                   color: Color(0xFF667085),
                 ),
@@ -195,12 +106,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 22),
                 child: Column(
                   children: [
+                    // Teacher ID
                     TextField(
-                      controller: studentIdController,
-                      enabled: !isLoading,
+                      controller: teacherIdController,
                       decoration: InputDecoration(
                         prefixIcon: const Icon(Icons.person),
-                        hintText: 'Student ID',
+                        hintText: 'Teacher ID',
                         filled: true,
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
@@ -208,10 +119,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
+
                     const SizedBox(height: 12),
+
+                    // Password
                     TextField(
                       controller: passwordController,
-                      enabled: !isLoading,
                       obscureText: obscurePassword,
                       decoration: InputDecoration(
                         prefixIcon: const Icon(Icons.lock),
@@ -235,10 +148,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
+
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
-                        onPressed: isLoading ? null : () {},
+                        onPressed: () {},
                         child: const Text(
                           'Forgot Password?',
                           style: TextStyle(
@@ -247,12 +161,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
+
                     const SizedBox(height: 5),
+
+                    // Login button
                     SizedBox(
                       width: double.infinity,
                       height: 52,
                       child: ElevatedButton(
-                        onPressed: isLoading ? null : studentLogin,
+                        onPressed: login,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF175CD3),
                           foregroundColor: Colors.white,
@@ -260,25 +177,18 @@ class _LoginScreenState extends State<LoginScreen> {
                             borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                        child: isLoading
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text(
-                                'Login',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                        child: const Text(
+                          'Login',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
+
                     const SizedBox(height: 25),
+
                     Row(
                       children: [
                         Expanded(
@@ -287,10 +197,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         const Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 15,
-                          ),
-                          child: Text('OR'),
+                          padding: EdgeInsets.symmetric(horizontal: 15),
+                          child: Text('TEACHER'),
                         ),
                         Expanded(
                           child: Divider(
@@ -298,38 +206,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 18),
-                    const Text(
-                      "Don't have an account? Contact Admin",
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF667085),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: isLoading ? null : openTeacherLogin,
-                      icon: const Icon(
-                        Icons.school_outlined,
-                        size: 20,
-                      ),
-                      label: const Text(
-                        'Teacher Login',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF175CD3),
-                        side: const BorderSide(
-                          color: Color(0xFF175CD3),
-                        ),
-                        minimumSize: const Size(double.infinity, 48),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
                     ),
                   ],
                 ),

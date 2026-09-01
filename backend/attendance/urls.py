@@ -1,17 +1,27 @@
 from django.urls import path
-from .views import MarkAttendanceView, CreateAttendanceSessionView
 
+from .views import (
+    CreateAttendanceSessionView,
+    EndAttendanceSessionView,
+    MarkAttendanceView,
+)
 
 urlpatterns = [
     path(
-        'mark/',
-        MarkAttendanceView.as_view(),
-        name='mark-attendance'
+        'sessions/create/',
+        CreateAttendanceSessionView.as_view(),
+        name='create-attendance-session',
     ),
 
     path(
-        'sessions/create/',
-        CreateAttendanceSessionView.as_view(),
-        name='create-attendance-session'
+        'sessions/end/',
+        EndAttendanceSessionView.as_view(),
+        name='end-attendance-session',
+    ),
+
+    path(
+        'mark/',
+        MarkAttendanceView.as_view(),
+        name='mark-attendance',
     ),
 ]

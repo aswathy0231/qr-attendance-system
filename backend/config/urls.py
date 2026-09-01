@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import path, include
+from teachers.web_views import teacher_dashboard
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -27,4 +28,7 @@ urlpatterns = [
 
     #Week 3 - Attendence CRUD
     path('api/attendance/', include('attendance.urls')),
+    
+    path('teacher/dashboard/', teacher_dashboard, name='teacher_dashboard'),
+    
 ]
