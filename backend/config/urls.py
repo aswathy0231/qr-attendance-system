@@ -24,4 +24,7 @@ urlpatterns = [
     
     # Week 3 - Timetables CRUD
     path('api/timetables/', include('timetables.urls')),
+
+    #Week 3 - Attendence CRUD
+    path('api/attendance/', include('attendance.urls')),
 ]
