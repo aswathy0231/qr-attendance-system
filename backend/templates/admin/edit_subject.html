@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Edit Subject</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f7f8fc;
+            color: #101828;
+        }
+
+        .header {
+            background: #175cd3;
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 22px;
+        }
+
+        .back {
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: auto;
+            padding: 30px;
+        }
+
+        .page-title {
+            margin-bottom: 20px;
+        }
+
+        .page-title h2 {
+            font-size: 26px;
+            margin-bottom: 6px;
+        }
+
+        .page-title p {
+            color: #667085;
+        }
+
+        .form-container {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 7px;
+        }
+
+        input {
+            width: 100%;
+            padding: 11px 12px;
+            border: 1px solid #d0d5dd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #175cd3;
+        }
+
+        .error {
+            background: #fef3f2;
+            color: #b42318;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 18px;
+            font-size: 14px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        .save-button {
+            background: #175cd3;
+            color: white;
+            border: none;
+            padding: 11px 18px;
+            border-radius: 9px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .save-button:hover {
+            background: #124bb3;
+        }
+
+        .cancel-button {
+            background: #f2f4f7;
+            color: #344054;
+            text-decoration: none;
+            padding: 11px 18px;
+            border-radius: 9px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        @media (max-width: 700px) {
+            .header {
+                padding: 18px;
+            }
+
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+
+        <h1>QR Attendance System</h1>
+
+        <a
+            href="/admin-web/subjects/"
+            class="back"
+        >
+            ← Back to Subjects
+        </a>
+
+    </header>
+
+    <main class="container">
+
+        <div class="page-title">
+
+            <h2>Edit Subject</h2>
+
+            <p>
+                Update the subject information.
+            </p>
+
+        </div>
+
+        <div class="form-container">
+
+            {% if error_message %}
+
+                <div class="error">
+                    {{ error_message }}
+                </div>
+
+            {% endif %}
+
+            <form method="POST">
+
+                {% csrf_token %}
+
+                <div class="form-group">
+
+                    <label for="subject_code">
+                        Subject Code
+                    </label>
+
+                    <input
+                        type="text"
+                        id="subject_code"
+                        name="subject_code"
+                        value="{{ subject.subject_code }}"
+                        required
+                    >
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="subject_name">
+                        Subject Name
+                    </label>
+
+                    <input
+                        type="text"
+                        id="subject_name"
+                        name="subject_name"
+                        value="{{ subject.subject_name }}"
+                        required
+                    >
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="credits">
+                        Credits
+                    </label>
+
+                    <input
+                        type="number"
+                        id="credits"
+                        name="credits"
+                        value="{{ subject.credits }}"
+                        min="1"
+                        required
+                    >
+
+                </div>
+
+                <div class="buttons">
+
+                    <button
+                        type="submit"
+                        class="save-button"
+                    >
+                        Save Changes
+                    </button>
+
+                    <a
+                        href="/admin-web/subjects/"
+                        class="cancel-button"
+                    >
+                        Cancel
+                    </a>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </main>
+
+</body>
+</html>

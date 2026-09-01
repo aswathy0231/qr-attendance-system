@@ -4,6 +4,8 @@ from teachers.web_views import teacher_dashboard
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    
+    path('admin-web/', include('admins.web_urls')),
 
     # Week 2 - Authentication
     path('api/', include('accounts.urls')),

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Add Class - QR Attendance System</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f7f8fc;
+            color: #101828;
+        }
+
+        .header {
+            background: #175cd3;
+            color: white;
+            padding: 20px 30px;
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 22px;
+        }
+
+        .back {
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .container {
+            max-width: 650px;
+            margin: 40px auto;
+            padding: 30px;
+
+            background: white;
+            border-radius: 16px;
+
+            box-shadow:
+                0 4px 15px rgba(0, 0, 0, 0.06);
+        }
+
+        h2 {
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #667085;
+            margin-bottom: 25px;
+        }
+
+        .error {
+            background: #ffe4e4;
+            color: #b42318;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+
+            border: 1px solid #d0d5dd;
+            border-radius: 8px;
+
+            font-size: 14px;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #175cd3;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 25px;
+        }
+
+        button {
+            border: none;
+            padding: 12px 20px;
+
+            background: #175cd3;
+            color: white;
+
+            border-radius: 8px;
+
+            font-size: 14px;
+            font-weight: bold;
+
+            cursor: pointer;
+        }
+
+        .cancel {
+            background: #e4e7ec;
+            color: #344054;
+
+            text-decoration: none;
+
+            padding: 12px 20px;
+
+            border-radius: 8px;
+
+            font-size: 14px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+<header class="header">
+
+    <h1>QR Attendance System</h1>
+
+    <a
+        href="/admin-web/classes/"
+        class="back"
+    >
+        ← Back to Classes
+    </a>
+
+</header>
+
+
+<main class="container">
+
+    <h2>Add Class</h2>
+
+    <p class="subtitle">
+        Create a new class, semester and section.
+    </p>
+
+
+    {% if error_message %}
+
+        <div class="error">
+            {{ error_message }}
+        </div>
+
+    {% endif %}
+
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+
+        <div class="form-group">
+
+            <label>
+                Class Name
+            </label>
+
+            <input
+                type="text"
+                name="class_name"
+                placeholder="Example: MCA"
+                required
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>
+                Semester
+            </label>
+
+            <input
+                type="number"
+                name="semester"
+                min="1"
+                max="10"
+                placeholder="Example: 1"
+                required
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>
+                Section
+            </label>
+
+            <input
+                type="text"
+                name="section"
+                placeholder="Example: A"
+                required
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>
+                Department
+            </label>
+
+            <select
+                name="department_id"
+                required
+            >
+
+                <option value="">
+                    Select Department
+                </option>
+
+                {% for department in departments %}
+
+                    <option value="{{ department.department_id }}">
+                        {{ department.department_name }}
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <div class="buttons">
+
+            <button type="submit">
+                Add Class
+            </button>
+
+            <a
+                href="/admin-web/classes/"
+                class="cancel"
+            >
+                Cancel
+            </a>
+
+        </div>
+
+    </form>
+
+</main>
+
+</body>
+</html>
