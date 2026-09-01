@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'scanner_screen.dart';
 import 'attendance_history_screen.dart';
 import 'profile_screen.dart';
+import 'login_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -22,7 +23,6 @@ class DashboardScreen extends StatelessWidget {
               // HEADER
               Container(
                 height: 155,
-
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
@@ -35,7 +35,6 @@ class DashboardScreen extends StatelessWidget {
                     bottomRight: Radius.circular(35),
                   ),
                 ),
-
                 padding: const EdgeInsets.all(20),
 
                 // Row arranges the menu, greeting and notification horizontally
@@ -132,7 +131,7 @@ class DashboardScreen extends StatelessWidget {
                             vertical: 7,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFEAF1FF),
+                            color: Color(0xFFEAF1FF),
                             borderRadius: BorderRadius.circular(15),
                           ),
                           child: const Text(
@@ -230,6 +229,48 @@ class DashboardScreen extends StatelessWidget {
                       ),
                       Icon(Icons.chevron_right),
                     ],
+                  ),
+                ),
+              ),
+
+              // LOGOUT BUTTON
+              Transform.translate(
+                offset: const Offset(0, -5),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 15,
+                  ),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        // Remove all previous screens and return to login
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LoginScreen(),
+                          ),
+                          (route) => false,
+                        );
+                      },
+                      icon: const Icon(Icons.logout),
+                      label: const Text(
+                        'Logout',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE53935),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
