@@ -15,7 +15,6 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController studentIdController = TextEditingController();
-
   final TextEditingController passwordController = TextEditingController();
 
   bool obscurePassword = true;
@@ -66,6 +65,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final data = jsonDecode(response.body);
 
+      print('LOGIN RESPONSE: $data');
+
       if (response.statusCode == 200) {
         // Make sure this login belongs to a student.
         if (data['role'] != 'student') {
@@ -81,11 +82,16 @@ class _LoginScreenState extends State<LoginScreen> {
           isLoading = false;
         });
 
+        // Get the logged-in student's actual student_id.
+        final int studentId = data['student_id'];
+
         // Successful student login
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => const DashboardScreen(),
+            builder: (context) => DashboardScreen(
+              studentId: studentId,
+            ),
           ),
         );
       } else {
@@ -325,7 +331,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         side: const BorderSide(
                           color: Color(0xFF175CD3),
                         ),
-                        minimumSize: const Size(double.infinity, 48),
+                        minimumSize: const Size(
+                          double.infinity,
+                          48,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),

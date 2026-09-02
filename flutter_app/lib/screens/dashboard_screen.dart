@@ -7,7 +7,12 @@ import 'profile_screen.dart';
 import 'login_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+  final int studentId;
+
+  const DashboardScreen({
+    super.key,
+    required this.studentId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -36,8 +41,6 @@ class DashboardScreen extends StatelessWidget {
                   ),
                 ),
                 padding: const EdgeInsets.all(20),
-
-                // Row arranges the menu, greeting and notification horizontally
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -46,10 +49,7 @@ class DashboardScreen extends StatelessWidget {
                       color: Colors.white,
                       size: 27,
                     ),
-
                     const SizedBox(width: 20),
-
-                    // Expanded takes the remaining space in the Row
                     const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -73,7 +73,6 @@ class DashboardScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-
                     const Icon(
                       Icons.notifications,
                       color: Colors.white,
@@ -83,7 +82,6 @@ class DashboardScreen extends StatelessWidget {
               ),
 
               // DATE CARD
-              // Moves the card upward so it overlaps the header
               Transform.translate(
                 offset: const Offset(0, -35),
                 child: Padding(
@@ -152,30 +150,39 @@ class DashboardScreen extends StatelessWidget {
                 offset: const Offset(0, -20),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 15),
-
-                  // Row places the three cards side by side
                   child: Row(
                     children: [
+                      // SCAN QR
                       Expanded(
                         child: _dashboardCard(
                           context,
                           Icons.qr_code_scanner,
                           const Color(0xFF4057E8),
                           'Scan QR',
-                          const ScannerScreen(),
+                          ScannerScreen(
+                            studentId: studentId,
+                          ),
                         ),
                       ),
+
                       const SizedBox(width: 10),
+
+                      // ATTENDANCE HISTORY
                       Expanded(
                         child: _dashboardCard(
                           context,
                           Icons.assignment,
                           const Color(0xFF39B66A),
                           'Attendance',
-                          const AttendanceHistoryScreen(),
+                          AttendanceHistoryScreen(
+                            studentId: studentId,
+                          ),
                         ),
                       ),
+
                       const SizedBox(width: 10),
+
+                      // PROFILE
                       Expanded(
                         child: _dashboardCard(
                           context,
@@ -246,7 +253,6 @@ class DashboardScreen extends StatelessWidget {
                     height: 50,
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        // Remove all previous screens and return to login
                         Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(
@@ -289,10 +295,8 @@ class DashboardScreen extends StatelessWidget {
     String title,
     Widget page,
   ) {
-    // Detects when the user taps the card
     return GestureDetector(
       onTap: () {
-        // Opens the selected screen
         Navigator.push(
           context,
           MaterialPageRoute(

@@ -13,6 +13,10 @@ from io import BytesIO
 from .models import AttendanceSession, Attendance
 from .serializers import AttendanceSessionSerializer
 
+from admins.models import SubjectAssignment
+from subjects.models import Subject
+from teachers.models import Teacher
+
 
 class CreateAttendanceSessionView(APIView):
 
@@ -118,6 +122,7 @@ class EndAttendanceSessionView(APIView):
             status=status.HTTP_200_OK
         )
 
+
 class MarkAttendanceView(APIView):
 
     def post(self, request):
@@ -145,6 +150,15 @@ class MarkAttendanceView(APIView):
             return Response(
                 {
                     'error': 'Invalid or inactive QR code'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Check whether the attendance session has expired
+        if timezone.now() > session.end_time:
+            return Response(
+                {
+                    'error': 'QR code has expired'
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
@@ -182,4 +196,107 @@ class MarkAttendanceView(APIView):
                 'status': attendance.status
             },
             status=status.HTTP_201_CREATED
+        )
+
+
+class AttendanceHistoryView(APIView):
+
+    def get(self, request):
+
+        student_id = request.query_params.get('student_id')
+
+        # Check required data
+        if not student_id:
+            return Response(
+                {
+                    'error': 'student_id is required'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validate student ID
+        try:
+            student_id = int(student_id)
+
+        except (ValueError, TypeError):
+            return Response(
+                {
+                    'error': 'student_id must be a number'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Get attendance records for this student
+        attendance_records = Attendance.objects.filter(
+            student_id=student_id
+        ).order_by('-attendance_time')
+
+        history = []
+
+        for attendance in attendance_records:
+
+            try:
+                # Get attendance session
+                session = AttendanceSession.objects.get(
+                    session_id=attendance.session_id
+                )
+
+                # Get subject assignment
+                assignment = SubjectAssignment.objects.get(
+                    assignment_id=session.assignment_id
+                )
+
+                # Get subject
+                subject = Subject.objects.get(
+                    subject_id=assignment.subject_id
+                )
+
+                # Get teacher
+                teacher = Teacher.objects.get(
+                    teacher_id=assignment.teacher_id
+                )
+
+                # Convert UTC time to local Django timezone
+                local_attendance_time = (
+                    timezone.localtime(attendance.attendance_time)
+                    if attendance.attendance_time
+                    else None
+                )
+
+                history.append({
+                    'attendance_id': attendance.attendance_id,
+                    'subject': subject.subject_name,
+                    'professor': teacher.full_name,
+
+                    'date': (
+                        local_attendance_time.strftime(
+                            '%d %B %Y'
+                        )
+                        if local_attendance_time
+                        else ''
+                    ),
+
+                    'time': (
+                        local_attendance_time.strftime(
+                            '%I:%M %p'
+                        )
+                        if local_attendance_time
+                        else ''
+                    ),
+
+                    'status': attendance.status,
+                })
+
+            except (
+                AttendanceSession.DoesNotExist,
+                SubjectAssignment.DoesNotExist,
+                Subject.DoesNotExist,
+                Teacher.DoesNotExist
+            ):
+                # Skip incomplete attendance relationships
+                continue
+
+        return Response(
+            history,
+            status=status.HTTP_200_OK
         )

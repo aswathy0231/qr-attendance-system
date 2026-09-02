@@ -10,6 +10,8 @@ from .models import User
 from .serializers import LoginSerializer
 from .permissions import IsStudent
 
+from students.models import Student
+
 
 class LoginView(APIView):
 
@@ -51,6 +53,20 @@ class LoginView(APIView):
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
+        # Get the student's student_id
+        student_id = None
+
+        if user.role.lower() == 'student':
+            try:
+                student = Student.objects.get(user_id=user.user_id)
+                student_id = student.student_id
+
+            except Student.DoesNotExist:
+                return Response(
+                    {'error': 'Student record not found'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
         # Create JWT
         refresh = RefreshToken()
 
@@ -63,6 +79,7 @@ class LoginView(APIView):
         return Response({
             'message': 'Login successful',
             'user_id': user.user_id,
+            'student_id': student_id,
             'username': user.username,
             'role': user.role,
             'access': str(access_token),
@@ -79,9 +96,24 @@ class ProfileView(APIView):
 
         user = request.user
 
+        # Get the student's student_id
+        student_id = None
+
+        if user.role.lower() == 'student':
+            try:
+                student = Student.objects.get(user_id=user.user_id)
+                student_id = student.student_id
+
+            except Student.DoesNotExist:
+                return Response(
+                    {'error': 'Student record not found'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
         return Response({
             'message': 'Authentication successful',
             'user_id': user.user_id,
+            'student_id': student_id,
             'username': user.username,
             'role': user.role
         })

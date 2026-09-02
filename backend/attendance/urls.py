@@ -4,6 +4,7 @@ from .views import (
     CreateAttendanceSessionView,
     EndAttendanceSessionView,
     MarkAttendanceView,
+    AttendanceHistoryView,
 )
 
 urlpatterns = [
@@ -23,5 +24,11 @@ urlpatterns = [
         'mark/',
         MarkAttendanceView.as_view(),
         name='mark-attendance',
+    ),
+
+    path(
+        'history/',
+        AttendanceHistoryView.as_view(),
+        name='attendance-history',
     ),
 ]

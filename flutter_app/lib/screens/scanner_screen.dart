@@ -5,7 +5,12 @@ import 'package:http/http.dart' as http;
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 class ScannerScreen extends StatefulWidget {
-  const ScannerScreen({super.key});
+  final int studentId;
+
+  const ScannerScreen({
+    super.key,
+    required this.studentId,
+  });
 
   @override
   State<ScannerScreen> createState() => _ScannerScreenState();
@@ -18,13 +23,10 @@ class _ScannerScreenState extends State<ScannerScreen> {
   // Prevents the same QR from being processed multiple times
   bool hasScanned = false;
 
-  // Temporary student ID for testing.
-  // Later this will come from the logged-in student.
-  final int studentId = 1;
-
   // Django backend URL.
   //
-  // For Flutter Web running on the same computer:
+  // Keep this as 127.0.0.1 because we are using:
+  // adb reverse tcp:8000 tcp:8000
   static const String baseUrl = 'http://127.0.0.1:8000';
 
   Future<void> _markAttendance(String qrToken) async {
@@ -35,17 +37,37 @@ class _ScannerScreenState extends State<ScannerScreen> {
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          'student_id': studentId,
+          'student_id': widget.studentId,
           'qr_token': qrToken,
         }),
       );
 
-      final data = jsonDecode(response.body);
+      // DEBUG INFORMATION
+      print('========================================');
+      print('ATTENDANCE REQUEST');
+      print('Student ID: ${widget.studentId}');
+      print('QR Token: $qrToken');
+      print('ATTENDANCE STATUS: ${response.statusCode}');
+      print('ATTENDANCE BODY: ${response.body}');
+      print('========================================');
 
       if (!mounted) return;
 
+      // Try to decode the response as JSON.
+      Map<String, dynamic> data = {};
+
+      try {
+        final decoded = jsonDecode(response.body);
+
+        if (decoded is Map<String, dynamic>) {
+          data = decoded;
+        }
+      } catch (jsonError) {
+        print('JSON DECODE ERROR: $jsonError');
+      }
+
       if (response.statusCode == 201) {
-        // Stop the scanner after successful attendance marking.
+        // Stop scanner after successful attendance marking.
         await scannerController.stop();
 
         if (!mounted) return;
@@ -57,20 +79,28 @@ class _ScannerScreenState extends State<ScannerScreen> {
           ),
         );
       } else {
+        // Allow scanning again after an unsuccessful request.
         setState(() {
           hasScanned = false;
         });
 
+        final errorMessage = data['error']?.toString() ??
+            data['message']?.toString() ??
+            'Failed to mark attendance (HTTP ${response.statusCode})';
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              data['error'] ?? 'Failed to mark attendance',
-            ),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );
       }
     } catch (e) {
+      print('========================================');
+      print('ATTENDANCE CONNECTION ERROR');
+      print(e);
+      print('========================================');
+
       if (!mounted) return;
 
       setState(() {
@@ -78,9 +108,12 @@ class _ScannerScreenState extends State<ScannerScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not connect to the server.'),
+        SnackBar(
+          content: Text(
+            'Could not connect to the server.\n$e',
+          ),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
         ),
       );
     }
@@ -96,6 +129,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
         setState(() {
           hasScanned = true;
         });
+
+        print('QR CODE DETECTED: $value');
 
         // Send QR token to Django backend.
         _markAttendance(value);
