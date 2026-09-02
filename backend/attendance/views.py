@@ -16,6 +16,7 @@ from .serializers import AttendanceSessionSerializer
 from admins.models import SubjectAssignment
 from subjects.models import Subject
 from teachers.models import Teacher
+from students.models import Student
 
 
 class CreateAttendanceSessionView(APIView):
@@ -298,5 +299,120 @@ class AttendanceHistoryView(APIView):
 
         return Response(
             history,
+            status=status.HTTP_200_OK
+        )
+
+
+class TeacherAttendanceView(APIView):
+
+    def get(self, request, teacher_id, session_id):
+
+        # Find the attendance session
+        try:
+            session = AttendanceSession.objects.get(
+                session_id=session_id
+            )
+
+        except AttendanceSession.DoesNotExist:
+            return Response(
+                {
+                    'error': 'Attendance session not found'
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Check that this session belongs to this teacher
+        try:
+            assignment = SubjectAssignment.objects.get(
+                assignment_id=session.assignment_id,
+                teacher_id=teacher_id
+            )
+
+        except SubjectAssignment.DoesNotExist:
+            return Response(
+                {
+                    'error': 'This attendance session does not belong to this teacher'
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Get subject
+        try:
+            subject = Subject.objects.get(
+                subject_id=assignment.subject_id
+            )
+
+        except Subject.DoesNotExist:
+            return Response(
+                {
+                    'error': 'Subject not found'
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Get all attendance records for this session
+        attendance_records = Attendance.objects.filter(
+            session_id=session.session_id
+        ).order_by('attendance_time')
+
+        attendance_list = []
+
+        for attendance in attendance_records:
+
+            try:
+                # Get student
+                student = Student.objects.get(
+                    student_id=attendance.student_id
+                )
+
+                # Convert UTC time to local Django timezone
+                local_attendance_time = (
+                    timezone.localtime(
+                        attendance.attendance_time
+                    )
+                    if attendance.attendance_time
+                    else None
+                )
+
+                attendance_list.append({
+                    'attendance_id': attendance.attendance_id,
+                    'student_id': student.student_id,
+                    'student_name': student.full_name,
+
+                    'attendance_time': (
+                        local_attendance_time.strftime(
+                            '%d %B %Y, %I:%M %p'
+                        )
+                        if local_attendance_time
+                        else ''
+                    ),
+
+                    'face_verified': attendance.face_verified,
+                    'ble_verified': attendance.ble_verified,
+                    'status': attendance.status,
+                })
+
+            except Student.DoesNotExist:
+                # Skip attendance records whose student
+                # record cannot be found
+                continue
+
+        return Response(
+            {
+                'session_id': session.session_id,
+                'assignment_id': assignment.assignment_id,
+
+                'subject_code': subject.subject_code,
+                'subject_name': subject.subject_name,
+
+                'session_status': session.status,
+
+                'start_time': session.start_time,
+                'end_time': session.end_time,
+
+                'total_present': len(attendance_list),
+
+                'attendance': attendance_list,
+            },
             status=status.HTTP_200_OK
         )

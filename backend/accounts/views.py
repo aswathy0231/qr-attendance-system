@@ -11,6 +11,7 @@ from .serializers import LoginSerializer
 from .permissions import IsStudent
 
 from students.models import Student
+from teachers.models import Teacher
 
 
 class LoginView(APIView):
@@ -53,8 +54,9 @@ class LoginView(APIView):
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
-        # Get the student's student_id
+        # Get the student's or teacher's ID
         student_id = None
+        teacher_id = None
 
         if user.role.lower() == 'student':
             try:
@@ -64,6 +66,17 @@ class LoginView(APIView):
             except Student.DoesNotExist:
                 return Response(
                     {'error': 'Student record not found'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+        elif user.role.lower() == 'teacher':
+            try:
+                teacher = Teacher.objects.get(user_id=user.user_id)
+                teacher_id = teacher.teacher_id
+
+            except Teacher.DoesNotExist:
+                return Response(
+                    {'error': 'Teacher record not found'},
                     status=status.HTTP_404_NOT_FOUND
                 )
 
@@ -80,6 +93,7 @@ class LoginView(APIView):
             'message': 'Login successful',
             'user_id': user.user_id,
             'student_id': student_id,
+            'teacher_id': teacher_id,
             'username': user.username,
             'role': user.role,
             'access': str(access_token),

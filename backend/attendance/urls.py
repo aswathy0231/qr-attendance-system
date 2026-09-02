@@ -5,6 +5,7 @@ from .views import (
     EndAttendanceSessionView,
     MarkAttendanceView,
     AttendanceHistoryView,
+    TeacherAttendanceView,
 )
 
 urlpatterns = [
@@ -30,5 +31,11 @@ urlpatterns = [
         'history/',
         AttendanceHistoryView.as_view(),
         name='attendance-history',
+    ),
+
+    path(
+        'teacher/<int:teacher_id>/session/<int:session_id>/',
+        TeacherAttendanceView.as_view(),
+        name='teacher-attendance',
     ),
 ]

@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Attendance Management</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f8fc;
+            color: #151a2d;
+        }
+
+        /* Header */
+
+        .header {
+            background: linear-gradient(
+                135deg,
+                #1455d1,
+                #2d70e5
+            );
+
+            color: white;
+
+            padding: 25px 40px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 6px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* Main container */
+
+        .container {
+            max-width: 1100px;
+
+            margin: 30px auto;
+
+            padding: 0 20px;
+        }
+
+        /* Card */
+
+        .card {
+            background: white;
+
+            border-radius: 18px;
+
+            padding: 25px;
+
+            margin-bottom: 25px;
+
+            box-shadow:
+                0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Session information */
+
+        .session-info {
+            display: grid;
+
+            grid-template-columns:
+                repeat(4, 1fr);
+
+            gap: 15px;
+
+            margin-top: 20px;
+        }
+
+        .info-box {
+            background-color: #f9fafb;
+
+            border: 1px solid #e4e7ec;
+
+            border-radius: 12px;
+
+            padding: 18px;
+        }
+
+        .info-label {
+            font-size: 13px;
+
+            color: #667085;
+
+            margin-bottom: 7px;
+        }
+
+        .info-value {
+            font-size: 18px;
+
+            font-weight: bold;
+        }
+
+        /* Attendance summary */
+
+        .summary {
+            display: flex;
+
+            gap: 20px;
+
+            margin-top: 20px;
+        }
+
+        .summary-box {
+            flex: 1;
+
+            padding: 20px;
+
+            border-radius: 12px;
+
+            background-color: #eef4ff;
+
+            border: 1px solid #c7d7fe;
+        }
+
+        .summary-number {
+            font-size: 30px;
+
+            font-weight: bold;
+
+            color: #175cd3;
+
+            margin-bottom: 5px;
+        }
+
+        .summary-label {
+            color: #667085;
+
+            font-size: 14px;
+        }
+
+        /* Table */
+
+        .table-container {
+            overflow-x: auto;
+
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+
+            border-collapse: collapse;
+
+            min-width: 750px;
+        }
+
+        th {
+            background-color: #f9fafb;
+
+            color: #475467;
+
+            font-size: 13px;
+
+            text-align: left;
+
+            padding: 14px;
+
+            border-bottom: 1px solid #e4e7ec;
+        }
+
+        td {
+            padding: 15px 14px;
+
+            border-bottom: 1px solid #eaecf0;
+
+            font-size: 14px;
+        }
+
+        tr:hover {
+            background-color: #f9fafb;
+        }
+
+        /* Status */
+
+        .status {
+            display: inline-block;
+
+            padding: 6px 12px;
+
+            border-radius: 20px;
+
+            font-size: 12px;
+
+            font-weight: bold;
+        }
+
+        .status-present {
+            background-color: #e7f6ec;
+
+            color: #16803a;
+        }
+
+        /* Verification */
+
+        .verified {
+            color: #16803a;
+
+            font-weight: bold;
+        }
+
+        .not-verified {
+            color: #98a2b3;
+        }
+
+        /* Empty state */
+
+        .empty {
+            text-align: center;
+
+            padding: 40px 20px;
+
+            color: #667085;
+        }
+
+        /* Back button */
+
+        .back-button {
+            display: inline-block;
+
+            margin-bottom: 20px;
+
+            padding: 10px 18px;
+
+            border-radius: 10px;
+
+            background-color: white;
+
+            border: 1px solid #d0d5dd;
+
+            color: #344054;
+
+            text-decoration: none;
+
+            font-size: 14px;
+
+            font-weight: bold;
+        }
+
+        .back-button:hover {
+            background-color: #f9fafb;
+        }
+
+        /* Responsive */
+
+        @media (max-width: 800px) {
+
+            .session-info {
+                grid-template-columns:
+                    repeat(2, 1fr);
+            }
+
+        }
+
+        @media (max-width: 600px) {
+
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 23px;
+            }
+
+            .container {
+                padding: 0 15px;
+            }
+
+            .session-info {
+                grid-template-columns: 1fr;
+            }
+
+            .summary {
+                flex-direction: column;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <!-- HEADER -->
+
+    <header class="header">
+
+        <h1>
+            Attendance Management
+        </h1>
+
+        <p>
+            Hello, {{ teacher.full_name }}
+        </p>
+
+    </header>
+
+
+    <!-- MAIN -->
+
+    <main class="container">
+
+
+        <!-- BACK BUTTON -->
+
+        <a
+            href="/teacher/dashboard/"
+            class="back-button"
+        >
+            ← Back to Dashboard
+        </a>
+
+
+        <!-- SESSION INFORMATION -->
+
+        <section class="card">
+
+            <h2>
+                Session Details
+            </h2>
+
+
+            <div class="session-info">
+
+
+                <div class="info-box">
+
+                    <div class="info-label">
+                        Session ID
+                    </div>
+
+                    <div class="info-value">
+                        {{ session.session_id }}
+                    </div>
+
+                </div>
+
+
+                <div class="info-box">
+
+                    <div class="info-label">
+                        Subject
+                    </div>
+
+                    <div class="info-value">
+                        {{ subject.subject_name }}
+                    </div>
+
+                </div>
+
+
+                <div class="info-box">
+
+                    <div class="info-label">
+                        Subject Code
+                    </div>
+
+                    <div class="info-value">
+                        {{ subject.subject_code }}
+                    </div>
+
+                </div>
+
+
+                <div class="info-box">
+
+                    <div class="info-label">
+                        Status
+                    </div>
+
+                    <div class="info-value">
+                        {{ session.status }}
+                    </div>
+
+                </div>
+
+
+            </div>
+
+        </section>
+
+
+        <!-- ATTENDANCE SUMMARY -->
+
+        <section class="card">
+
+            <h2>
+                Attendance Summary
+            </h2>
+
+
+            <div class="summary">
+
+
+                <div class="summary-box">
+
+                    <div
+                        class="summary-number"
+                        id="total-present"
+                    >
+                        0
+                    </div>
+
+                    <div class="summary-label">
+                        Students Present
+                    </div>
+
+                </div>
+
+
+            </div>
+
+        </section>
+
+
+        <!-- ATTENDANCE RECORDS -->
+
+        <section class="card">
+
+            <h2>
+                Attendance Records
+            </h2>
+
+
+            <div
+                class="table-container"
+                id="table-container"
+            >
+
+                <table>
+
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Student ID
+                            </th>
+
+                            <th>
+                                Student Name
+                            </th>
+
+                            <th>
+                                Attendance Time
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                            <th>
+                                Face Verification
+                            </th>
+
+                            <th>
+                                BLE Verification
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody id="attendance-table">
+
+
+                    </tbody>
+
+
+                </table>
+
+            </div>
+
+
+            <div
+                class="empty"
+                id="empty-message"
+            >
+
+                No attendance records found.
+
+            </div>
+
+        </section>
+
+
+    </main>
+
+
+    <script>
+
+
+        /*
+         * Teacher ID
+         */
+
+        const teacherId =
+            {{ teacher.teacher_id }};
+
+
+        /*
+         * Session ID
+         */
+
+        const sessionId =
+            {{ session.session_id }};
+
+
+        /*
+         * Load attendance records
+         */
+
+        async function loadAttendance() {
+
+            try {
+
+                const response =
+                    await fetch(
+                        `/api/attendance/teacher/${teacherId}/session/${sessionId}/`
+                    );
+
+
+                const data =
+                    await response.json();
+
+
+                /*
+                 * Check API response
+                 */
+
+                if (!response.ok) {
+
+                    alert(
+                        data.error ||
+                        'Failed to load attendance.'
+                    );
+
+                    return;
+                }
+
+
+                /*
+                 * Update total present
+                 */
+
+                document.getElementById(
+                    'total-present'
+                ).textContent =
+                    data.total_present;
+
+
+                /*
+                 * Get attendance table
+                 */
+
+                const table =
+                    document.getElementById(
+                        'attendance-table'
+                    );
+
+
+                const emptyMessage =
+                    document.getElementById(
+                        'empty-message'
+                    );
+
+
+                /*
+                 * Clear previous rows
+                 */
+
+                table.innerHTML = '';
+
+
+                /*
+                 * Check whether records exist
+                 */
+
+                if (
+                    !data.attendance ||
+                    data.attendance.length === 0
+                ) {
+
+                    emptyMessage.style.display =
+                        'block';
+
+                    return;
+                }
+
+
+                /*
+                 * Hide empty message
+                 */
+
+                emptyMessage.style.display =
+                    'none';
+
+
+                /*
+                 * Create table rows
+                 */
+
+                data.attendance.forEach(
+                    function(record) {
+
+                        const row =
+                            document.createElement(
+                                'tr'
+                            );
+
+
+                        /*
+                         * Face verification
+                         */
+
+                        const faceVerification =
+                            record.face_verified
+                                ? '<span class="verified">Verified</span>'
+                                : '<span class="not-verified">Not Verified</span>';
+
+
+                        /*
+                         * BLE verification
+                         */
+
+                        const bleVerification =
+                            record.ble_verified
+                                ? '<span class="verified">Verified</span>'
+                                : '<span class="not-verified">Not Verified</span>';
+
+
+                        row.innerHTML = `
+
+                            <td>
+                                ${record.student_id}
+                            </td>
+
+                            <td>
+                                ${record.student_name}
+                            </td>
+
+                            <td>
+                                ${record.attendance_time}
+                            </td>
+
+                            <td>
+                                <span class="status status-present">
+                                    ${record.status}
+                                </span>
+                            </td>
+
+                            <td>
+                                ${faceVerification}
+                            </td>
+
+                            <td>
+                                ${bleVerification}
+                            </td>
+
+                        `;
+
+
+                        table.appendChild(row);
+
+                    }
+                );
+
+            }
+
+
+            catch (error) {
+
+                console.error(error);
+
+                alert(
+                    'Could not connect to the server.'
+                );
+
+            }
+
+        }
+
+
+        /*
+         * Load attendance when page opens
+         */
+
+        loadAttendance();
+
+
+    </script>
+
+
+</body>
+
+</html>

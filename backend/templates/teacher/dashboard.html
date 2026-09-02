@@ -1,17 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>Teacher Dashboard</title>
 
+
     <style>
+
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
+
 
         body {
             font-family: Arial, sans-serif;
@@ -19,7 +28,9 @@
             color: #151a2d;
         }
 
+
         /* Header */
+
         .header {
             background: linear-gradient(
                 135deg,
@@ -31,24 +42,64 @@
             padding: 25px 40px;
         }
 
+
         .header h1 {
             font-size: 28px;
             margin-bottom: 6px;
         }
+
 
         .header p {
             font-size: 14px;
             opacity: 0.9;
         }
 
+
         /* Main content */
+
         .container {
             max-width: 1000px;
             margin: 30px auto;
             padding: 0 20px;
         }
 
-        /* Class card */
+
+        /* Top navigation */
+
+        .dashboard-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 20px;
+        }
+
+
+        .history-button {
+            display: inline-block;
+
+            padding: 11px 18px;
+
+            background-color: #344054;
+            color: white;
+
+            text-decoration: none;
+
+            border-radius: 10px;
+
+            font-size: 14px;
+            font-weight: bold;
+
+            transition:
+                background-color 0.2s;
+        }
+
+
+        .history-button:hover {
+            background-color: #1d2939;
+        }
+
+
+        /* Card */
+
         .card {
             background: white;
             border-radius: 18px;
@@ -59,10 +110,42 @@
                 0 4px 15px rgba(0, 0, 0, 0.05);
         }
 
+
         .card h2 {
             font-size: 20px;
             margin-bottom: 20px;
         }
+
+
+        /* Assignment card */
+
+        .assignment-card {
+            padding: 18px;
+            margin-top: 15px;
+
+            border: 2px solid #e4e7ec;
+            border-radius: 12px;
+
+            background-color: #f9fafb;
+
+            cursor: pointer;
+
+            transition:
+                border-color 0.2s,
+                background-color 0.2s;
+        }
+
+
+        .assignment-card:hover {
+            border-color: #175cd3;
+        }
+
+
+        .assignment-card.selected {
+            border-color: #175cd3;
+            background-color: #eef4ff;
+        }
+
 
         .class-name {
             font-size: 24px;
@@ -70,17 +153,31 @@
             margin-bottom: 8px;
         }
 
+
         .class-info {
             color: #667085;
             margin-bottom: 6px;
         }
+
 
         .assignment {
             color: #98a2b3;
             font-size: 13px;
         }
 
+
+        /* Selection status */
+
+        .selection-status {
+            margin-top: 15px;
+            color: #175cd3;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+
         /* Start button */
+
         .start-button {
             width: 100%;
             padding: 15px;
@@ -97,28 +194,42 @@
             cursor: pointer;
         }
 
+
         .start-button:hover {
             background-color: #124bb3;
         }
 
+
+        .start-button:disabled {
+            background-color: #98a2b3;
+            cursor: not-allowed;
+        }
+
+
         /* Session */
+
         .session {
             text-align: center;
         }
 
+
         .session h2 {
             margin-bottom: 8px;
         }
+
 
         .session-id {
             color: #667085;
             margin-bottom: 20px;
         }
 
+
         /* QR */
+
         .qr-container {
             margin: 20px auto;
         }
+
 
         .qr-container img {
             width: 300px;
@@ -126,12 +237,15 @@
             object-fit: contain;
         }
 
+
         .instruction {
             color: #667085;
             margin-bottom: 20px;
         }
 
+
         /* End button */
+
         .end-button {
             width: 100%;
             padding: 14px;
@@ -148,11 +262,14 @@
             cursor: pointer;
         }
 
+
         .end-button:hover {
             background-color: #fff1f0;
         }
 
+
         /* Status */
+
         .status {
             display: inline-block;
 
@@ -169,67 +286,184 @@
             margin-bottom: 15px;
         }
 
+
         /* Hidden */
+
         .hidden {
             display: none;
         }
 
+
         /* Responsive */
+
         @media (max-width: 600px) {
 
             .header {
                 padding: 20px;
             }
 
+
             .header h1 {
                 font-size: 23px;
             }
+
 
             .container {
                 padding: 0 15px;
             }
 
+
             .qr-container img {
                 width: 250px;
                 height: 250px;
             }
+
+
+            .dashboard-actions {
+                justify-content: stretch;
+            }
+
+
+            .history-button {
+                width: 100%;
+                text-align: center;
+            }
+
         }
+
     </style>
+
 </head>
+
 
 <body>
 
+
     <!-- HEADER -->
+
     <header class="header">
-        <h1>Teacher Dashboard</h1>
-        <p>Hello, Teacher One</p>
+
+        <h1>
+            Teacher Dashboard
+        </h1>
+
+
+        <p>
+            Hello, {{ teacher.full_name }}
+        </p>
+
     </header>
 
 
     <!-- MAIN CONTENT -->
+
     <main class="container">
 
-        <!-- CURRENT CLASS -->
-        <section class="card">
 
-            <h2>Current Class</h2>
+        <!-- DASHBOARD ACTIONS -->
 
-            <div class="class-name">
-                Python
-            </div>
+        <div class="dashboard-actions">
 
-            <div class="class-info">
-                MCA • Semester 1
-            </div>
+            <a
+                href="/teacher/attendance-history/"
+                class="history-button"
+            >
 
-            <div class="assignment">
-                Assignment ID: 3
-            </div>
+                Attendance History
+
+            </a>
+
+        </div>
+
+
+        <!-- ASSIGNED CLASSES AND SUBJECTS -->
+
+        <section
+            class="card"
+            id="assignment-section"
+        >
+
+            <h2>
+                Select Class &amp; Subject
+            </h2>
+
+
+            {% if assignments %}
+
+
+                {% for assignment in assignments %}
+
+                    <div
+                        class="assignment-card {% if forloop.first %}selected{% endif %}"
+                        data-assignment-id="{{ assignment.assignment_id }}"
+                        onclick="selectAssignment(this)"
+                    >
+
+                        <div class="class-name">
+
+                            {{ assignment.subject_name }}
+
+                        </div>
+
+
+                        <div class="class-info">
+
+                            {{ assignment.class_name }}
+
+                            • Section {{ assignment.section }}
+
+                            • Semester {{ assignment.semester }}
+
+                        </div>
+
+
+                        <div class="assignment">
+
+                            {{ assignment.subject_code }}
+
+                            • Academic Year {{ assignment.academic_year }}
+
+                            • Assignment ID:
+                            {{ assignment.assignment_id }}
+
+                        </div>
+
+                    </div>
+
+                {% endfor %}
+
+
+                <div
+                    class="selection-status"
+                    id="selection-status"
+                >
+
+                    Selected:
+                    {{ assignments.0.subject_name }}
+                    —
+                    {{ assignments.0.class_name }}
+
+                </div>
+
+
+            {% else %}
+
+
+                <p class="assignment">
+
+                    No classes or subjects have been assigned to you.
+
+                </p>
+
+
+            {% endif %}
 
         </section>
 
 
+
         <!-- START ATTENDANCE -->
+
         <section
             class="card"
             id="start-section"
@@ -237,52 +471,77 @@
 
             <button
                 class="start-button"
+                id="start-button"
                 onclick="startAttendance()"
+                {% if not assignments %}disabled{% endif %}
             >
+
                 Start Attendance
+
             </button>
 
         </section>
 
 
+
         <!-- ACTIVE SESSION -->
+
         <section
             class="card session hidden"
             id="session-section"
         >
 
             <div class="status">
+
                 Attendance Session Active
+
             </div>
+
 
             <h2>
+
                 Scan the QR Code
+
             </h2>
 
+
             <div class="session-id">
+
                 Session ID:
+
                 <span id="session-id"></span>
+
             </div>
 
+
             <!-- QR CODE -->
+
             <div class="qr-container">
+
                 <img
                     id="qr-image"
                     src=""
                     alt="Attendance QR Code"
                 >
+
             </div>
 
+
             <p class="instruction">
+
                 Students can scan this QR code
                 to mark their attendance.
+
             </p>
+
 
             <button
                 class="end-button"
                 onclick="endAttendance()"
             >
+
                 End Attendance
+
             </button>
 
         </section>
@@ -290,53 +549,178 @@
     </main>
 
 
+
     <script>
 
+
         /*
-         * Temporary assignment ID.
+         * Currently selected assignment.
          *
-         * Later this will come from the
-         * teacher's selected class/subject.
+         * The first assignment is selected
+         * automatically when the page loads.
          */
-        const assignmentId = 3;
+
+        let selectedAssignmentId =
+
+            {% if assignments %}
+
+                {{ assignments.0.assignment_id }}
+
+            {% else %}
+
+                null
+
+            {% endif %};
+
 
 
         /*
          * Stores the currently active
          * attendance session.
          */
+
         let sessionId = null;
+
+
+
+        /*
+         * SELECT ASSIGNMENT
+         */
+
+        function selectAssignment(element) {
+
+
+            /*
+             * Get the selected assignment ID.
+             */
+
+            selectedAssignmentId =
+                element.getAttribute(
+                    'data-assignment-id'
+                );
+
+
+            /*
+             * Remove selected state
+             * from all assignment cards.
+             */
+
+            const cards =
+                document.querySelectorAll(
+                    '.assignment-card'
+                );
+
+
+            cards.forEach(function(card) {
+
+                card.classList.remove(
+                    'selected'
+                );
+
+            });
+
+
+            /*
+             * Highlight selected card.
+             */
+
+            element.classList.add(
+                'selected'
+            );
+
+
+            /*
+             * Get subject name.
+             */
+
+            const subject =
+                element.querySelector(
+                    '.class-name'
+                ).textContent.trim();
+
+
+            /*
+             * Get class information.
+             */
+
+            const classInfo =
+                element.querySelector(
+                    '.class-info'
+                ).textContent.trim();
+
+
+            /*
+             * Update selection status.
+             */
+
+            document.getElementById(
+                'selection-status'
+            ).textContent =
+                'Selected: ' +
+                subject +
+                ' — ' +
+                classInfo;
+
+        }
+
 
 
         /*
          * START ATTENDANCE
-         *
-         * Calls the Django API to create
-         * a new attendance session.
          */
+
         async function startAttendance() {
+
+
+            /*
+             * Make sure an assignment
+             * has been selected.
+             */
+
+            if (selectedAssignmentId === null) {
+
+                alert(
+                    'Please select a class and subject.'
+                );
+
+                return;
+            }
+
 
             try {
 
-                const response = await fetch(
-                    '/api/attendance/sessions/create/',
-                    {
-                        method: 'POST',
 
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
+                const response =
+                    await fetch(
+                        '/api/attendance/sessions/create/',
+                        {
+                            method: 'POST',
 
-                        body: JSON.stringify({
-                            assignment_id: assignmentId,
-                            duration_minutes: 10
-                        })
-                    }
-                );
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+
+                            body: JSON.stringify({
+
+                                assignment_id:
+                                    parseInt(
+                                        selectedAssignmentId
+                                    ),
+
+                                duration_minutes: 10
+
+                            })
+                        }
+                    );
 
 
-                const data = await response.json();
+                const data =
+                    await response.json();
 
+
+                /*
+                 * Check API response.
+                 */
 
                 if (!response.ok) {
 
@@ -352,41 +736,65 @@
                 /*
                  * Save session ID.
                  */
-                sessionId = data.session_id;
+
+                sessionId =
+                    data.session_id;
 
 
                 /*
                  * Display session ID.
                  */
+
                 document.getElementById(
                     'session-id'
-                ).textContent = sessionId;
+                ).textContent =
+                    sessionId;
 
 
                 /*
                  * Display QR image.
                  */
+
                 document.getElementById(
                     'qr-image'
-                ).src = data.qr_image;
+                ).src =
+                    data.qr_image;
+
+
+                /*
+                 * Hide assignment section.
+                 */
+
+                document.getElementById(
+                    'assignment-section'
+                ).classList.add(
+                    'hidden'
+                );
 
 
                 /*
                  * Hide Start button.
                  */
+
                 document.getElementById(
                     'start-section'
-                ).classList.add('hidden');
+                ).classList.add(
+                    'hidden'
+                );
 
 
                 /*
                  * Show active session.
                  */
+
                 document.getElementById(
                     'session-section'
-                ).classList.remove('hidden');
+                ).classList.remove(
+                    'hidden'
+                );
 
             }
+
 
             catch (error) {
 
@@ -395,43 +803,62 @@
                 );
 
                 console.error(error);
+
             }
+
         }
+
 
 
         /*
          * END ATTENDANCE
-         *
-         * Calls the Django API to end
-         * the currently active session.
          */
+
         async function endAttendance() {
 
+
+            /*
+             * Make sure there is
+             * an active session.
+             */
+
             if (sessionId === null) {
+
                 return;
+
             }
 
 
             try {
 
-                const response = await fetch(
-                    '/api/attendance/sessions/end/',
-                    {
-                        method: 'POST',
 
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
+                const response =
+                    await fetch(
+                        '/api/attendance/sessions/end/',
+                        {
+                            method: 'POST',
 
-                        body: JSON.stringify({
-                            session_id: sessionId
-                        })
-                    }
-                );
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+
+                            body: JSON.stringify({
+
+                                session_id:
+                                    sessionId
+
+                            })
+                        }
+                    );
 
 
-                const data = await response.json();
+                const data =
+                    await response.json();
 
+
+                /*
+                 * Check API response.
+                 */
 
                 if (!response.ok) {
 
@@ -441,36 +868,20 @@
                     );
 
                     return;
+
                 }
 
 
                 /*
-                 * Reset session.
+                 * Open attendance management
+                 * for the session that was just ended.
                  */
-                sessionId = null;
 
-
-                /*
-                 * Hide active session.
-                 */
-                document.getElementById(
-                    'session-section'
-                ).classList.add('hidden');
-
-
-                /*
-                 * Show Start button again.
-                 */
-                document.getElementById(
-                    'start-section'
-                ).classList.remove('hidden');
-
-
-                alert(
-                    'Attendance session ended.'
-                );
+                window.location.href =
+                    `/teacher/attendance/${sessionId}/`;
 
             }
+
 
             catch (error) {
 
@@ -479,10 +890,14 @@
                 );
 
                 console.error(error);
+
             }
+
         }
 
     </script>
 
+
 </body>
+
 </html>

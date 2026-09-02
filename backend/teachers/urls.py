@@ -3,12 +3,17 @@ from django.urls import path
 from .views import (
     TeacherListCreateView,
     TeacherDetailView,
+    TeacherAssignmentsView,
 )
 
-from .web_views import teacher_dashboard
+from .web_views import (
+    teacher_dashboard,
+    teacher_attendance,
+)
 
 
 urlpatterns = [
+
     # Teacher CRUD API
     path(
         '',
@@ -22,10 +27,24 @@ urlpatterns = [
         name='teacher-detail',
     ),
 
+    # Teacher assignments API
+    path(
+        '<int:teacher_id>/assignments/',
+        TeacherAssignmentsView.as_view(),
+        name='teacher-assignments',
+    ),
+
     # Teacher web dashboard
     path(
         'dashboard/',
         teacher_dashboard,
         name='teacher-dashboard',
+    ),
+
+    # Teacher attendance management page
+    path(
+        'attendance/<int:session_id>/',
+        teacher_attendance,
+        name='teacher-attendance',
     ),
 ]
