@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../models/student_model.dart';
+
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+  final StudentModel student;
+
+  const ProfileScreen({
+    super.key,
+    required this.student,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +30,7 @@ class ProfileScreen extends StatelessWidget {
 
         centerTitle: true,
 
-        // Buttons placed on the right side of AppBar
+        // Edit button
         actions: [
           IconButton(
             onPressed: () {},
@@ -39,7 +46,10 @@ class ProfileScreen extends StatelessWidget {
         child: Column(
           children: [
 
-            // Profile icon
+            // ==================================================
+            // PROFILE ICON
+            // ==================================================
+
             Container(
               width: 95,
               height: 95,
@@ -58,9 +68,13 @@ class ProfileScreen extends StatelessWidget {
 
             const SizedBox(height: 12),
 
-            const Text(
-              'Aswathy A',
-              style: TextStyle(
+            // ==================================================
+            // STUDENT NAME
+            // ==================================================
+
+            Text(
+              student.name,
+              style: const TextStyle(
                 fontSize: 19,
                 fontWeight: FontWeight.bold,
               ),
@@ -78,9 +92,14 @@ class ProfileScreen extends StatelessWidget {
 
             const SizedBox(height: 25),
 
-            // Student information card
+            // ==================================================
+            // STUDENT INFORMATION CARD
+            // ==================================================
+
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 15),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 15,
+              ),
 
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -90,25 +109,28 @@ class ProfileScreen extends StatelessWidget {
               child: Column(
                 children: [
 
-                  // Reusable rows for student information
+                  // Register number
                   _profileRow(
                     'Student ID',
-                    'TKMCA23M001',
+                    student.registerNumber,
                   ),
 
+                  // Email
                   _profileRow(
                     'Email',
-                    'aswathy.a@tkmce.ac.in',
+                    student.email,
                   ),
 
+                  // Phone
                   _profileRow(
-                    'Department',
-                    'Master of Computer Applications',
+                    'Phone',
+                    student.phone,
                   ),
 
+                  // Class
                   _profileRow(
-                    'Semester',
-                    'II Semester',
+                    'Class',
+                    student.classId.toString(),
                   ),
                 ],
               ),
@@ -116,7 +138,10 @@ class ProfileScreen extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            // Logout button
+            // ==================================================
+            // LOGOUT BUTTON
+            // ==================================================
+
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -146,13 +171,18 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  // Reusable function for displaying profile information
+  // ============================================================
+  // REUSABLE PROFILE ROW
+  // ============================================================
+
   Widget _profileRow(
     String title,
     String value,
   ) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 15),
+      padding: const EdgeInsets.symmetric(
+        vertical: 15,
+      ),
 
       decoration: BoxDecoration(
         border: Border(
@@ -162,14 +192,15 @@ class ProfileScreen extends StatelessWidget {
         ),
       ),
 
-      // Displays title and value side by side
       child: Row(
         children: [
 
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(fontSize: 12),
+              style: const TextStyle(
+                fontSize: 12,
+              ),
             ),
           ),
 
@@ -177,7 +208,10 @@ class ProfileScreen extends StatelessWidget {
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: const TextStyle(fontSize: 12),
+
+              style: const TextStyle(
+                fontSize: 12,
+              ),
             ),
           ),
         ],

@@ -1,43 +1,43 @@
-/// Represents a student and their profile information.
 class StudentModel {
   final int id;
+  final int userId;
   final String name;
   final String email;
   final String registerNumber;
-  final String course;
-  final String semester;
+  final String phone;
+  final int classId;
 
   StudentModel({
     required this.id,
+    required this.userId,
     required this.name,
     required this.email,
     required this.registerNumber,
-    required this.course,
-    required this.semester,
+    required this.phone,
+    required this.classId,
   });
 
-  /// Creates a StudentModel object from JSON data
-  /// received from the Django backend.
   factory StudentModel.fromJson(Map<String, dynamic> json) {
     return StudentModel(
-      id: json['id'] ?? 0,
-      name: json['name'] ?? '',
+      id: json['student_id'] ?? 0,
+      userId: json['user_id'] ?? 0,
+      name: json['full_name'] ?? '',
       email: json['email'] ?? '',
-      registerNumber: json['register_number'] ?? '',
-      course: json['course'] ?? '',
-      semester: json['semester'] ?? '',
+      registerNumber: json['register_no'] ?? '',
+      phone: json['phone'] ?? '',
+      classId: json['class_id'] ?? 0,
     );
   }
 
-  /// Converts the StudentModel object into JSON data.
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'name': name,
+      'student_id': id,
+      'user_id': userId,
+      'full_name': name,
       'email': email,
-      'register_number': registerNumber,
-      'course': course,
-      'semester': semester,
+      'register_no': registerNumber,
+      'phone': phone,
+      'class_id': classId,
     };
   }
 }

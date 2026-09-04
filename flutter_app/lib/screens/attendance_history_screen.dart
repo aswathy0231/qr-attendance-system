@@ -1,7 +1,7 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+
+import '../models/attendance_model.dart';
+import '../services/api_service.dart';
 
 class AttendanceHistoryScreen extends StatefulWidget {
   final int studentId;
@@ -16,53 +16,93 @@ class AttendanceHistoryScreen extends StatefulWidget {
       _AttendanceHistoryScreenState();
 }
 
-class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
-  List<dynamic> attendanceRecords = [];
+class _AttendanceHistoryScreenState
+    extends State<AttendanceHistoryScreen> {
+  // API service used to communicate with Django backend.
+  final ApiService apiService = ApiService();
 
+
+  // Stores attendance records received from the backend.
+  List<AttendanceModel> attendanceRecords = [];
+
+  // Stores the selected filter.
+  String selectedFilter = 'All';
+
+  // Indicates whether attendance data is loading.
   bool isLoading = true;
+
+  // Stores an error message if loading fails.
   String? errorMessage;
 
   @override
   void initState() {
     super.initState();
-    fetchAttendanceHistory();
+
+    // Load attendance history when the screen opens.
+    _loadAttendanceHistory();
   }
 
-  Future<void> fetchAttendanceHistory() async {
+  /// Fetches attendance history from the Django backend.
+  Future<void> _loadAttendanceHistory() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
     try {
-      final response = await http.get(
-        Uri.parse(
-          'http://127.0.0.1:8000/api/attendance/history/'
-          '?student_id=${widget.studentId}',
-        ),
+      final records = await apiService.getAttendanceHistory(
+        studentId: widget.studentId,
       );
 
-      if (response.statusCode == 200) {
-        setState(() {
-          attendanceRecords = jsonDecode(response.body);
-          isLoading = false;
-        });
-      } else {
-        setState(() {
-          errorMessage = 'Failed to load attendance history';
-          isLoading = false;
-        });
-      }
-    } catch (e) {
+      if (!mounted) return;
+
       setState(() {
-        errorMessage = 'Unable to connect to server';
+        attendanceRecords = records;
         isLoading = false;
       });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        isLoading = false;
+        errorMessage = 'Could not load attendance history.';
+      });
     }
+  }
+
+  /// Returns attendance records based on the selected filter.
+  List<AttendanceModel> get filteredRecords {
+    if (selectedFilter == 'Present') {
+      return attendanceRecords
+          .where(
+            (record) =>
+                record.status.toLowerCase() == 'present',
+          )
+          .toList();
+    }
+
+    if (selectedFilter == 'Absent') {
+      return attendanceRecords
+          .where(
+            (record) =>
+                record.status.toLowerCase() == 'absent',
+          )
+          .toList();
+    }
+
+    return attendanceRecords;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FC),
+
+      // Top navigation bar.
       appBar: AppBar(
         backgroundColor: const Color(0xFF175CD3),
         foregroundColor: Colors.white,
+
         title: const Text(
           'Attendance History',
           style: TextStyle(
@@ -70,116 +110,210 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
+
         centerTitle: true,
+
+        // Reload attendance history when refresh is pressed.
+        actions: [
+          IconButton(
+            onPressed: _loadAttendanceHistory,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
       ),
+
       body: Column(
         children: [
-          // Filter tabs
-          const Row(
+          // Filter tabs.
+          Row(
             children: [
               Expanded(
                 child: _Tab(
                   title: 'All',
-                  selected: true,
+                  selected: selectedFilter == 'All',
+                  onTap: () {
+                    setState(() {
+                      selectedFilter = 'All';
+                    });
+                  },
                 ),
               ),
+
               Expanded(
                 child: _Tab(
                   title: 'Present',
-                  selected: false,
+                  selected: selectedFilter == 'Present',
+                  onTap: () {
+                    setState(() {
+                      selectedFilter = 'Present';
+                    });
+                  },
                 ),
               ),
+
               Expanded(
                 child: _Tab(
                   title: 'Absent',
-                  selected: false,
+                  selected: selectedFilter == 'Absent',
+                  onTap: () {
+                    setState(() {
+                      selectedFilter = 'Absent';
+                    });
+                  },
                 ),
               ),
             ],
           ),
 
+          // Attendance content.
           Expanded(
-            child: isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(),
-                  )
-                : errorMessage != null
-                    ? Center(
-                        child: Text(
-                          errorMessage!,
-                          style: const TextStyle(
-                            color: Colors.red,
-                          ),
-                        ),
-                      )
-                    : attendanceRecords.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'No attendance records found',
-                            ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(14),
-                            itemCount: attendanceRecords.length,
-                            itemBuilder: (context, index) {
-                              final record = attendanceRecords[index];
-
-                              final bool present =
-                                  record['status']?.toString().toLowerCase() ==
-                                      'present';
-
-                              return AttendanceItem(
-                                subject: record['subject']?.toString() ?? '',
-                                professor:
-                                    record['professor']?.toString() ?? '',
-                                date: record['date']?.toString() ?? '',
-                                time: record['time']?.toString() ?? '',
-                                present: present,
-                              );
-                            },
-                          ),
+            child: _buildAttendanceContent(),
           ),
         ],
       ),
     );
   }
+
+  /// Builds loading, error, empty, or attendance list content.
+  Widget _buildAttendanceContent() {
+    // Loading indicator.
+    if (isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    // Error message.
+    if (errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 50,
+              color: Colors.red,
+            ),
+
+            const SizedBox(height: 12),
+
+            Text(
+              errorMessage!,
+              style: const TextStyle(
+                fontSize: 15,
+              ),
+            ),
+
+            const SizedBox(height: 15),
+
+            ElevatedButton(
+              onPressed: _loadAttendanceHistory,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Filtered attendance records.
+    final records = filteredRecords;
+
+    // Empty attendance history.
+    if (records.isEmpty) {
+      return Center(
+        child: Text(
+          selectedFilter == 'All'
+              ? 'No attendance records found.'
+              : 'No ${selectedFilter.toLowerCase()} records found.',
+          style: const TextStyle(
+            fontSize: 14,
+            color: Color(0xFF667085),
+          ),
+        ),
+      );
+    }
+
+    // Attendance record list.
+    return RefreshIndicator(
+      onRefresh: _loadAttendanceHistory,
+
+      child: ListView.builder(
+        padding: const EdgeInsets.all(14),
+
+        itemCount: records.length,
+
+        itemBuilder: (context, index) {
+          final record = records[index];
+
+          return AttendanceItem(
+            subject: record.subject,
+            professor: record.professor,
+            date: record.date,
+            time: record.time,
+            present:
+                record.status.toLowerCase() == 'present',
+          );
+        },
+      ),
+    );
+  }
 }
 
-// Reusable widget for the filter tabs
+
+// Reusable widget for filter tabs.
 class _Tab extends StatelessWidget {
   final String title;
   final bool selected;
+  final VoidCallback onTap;
 
   const _Tab({
     required this.title,
     required this.selected,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 15),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: selected ? const Color(0xFF175CD3) : Colors.transparent,
-            width: 2,
+    return InkWell(
+      onTap: onTap,
+
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          vertical: 15,
+        ),
+
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: selected
+                  ? const Color(0xFF175CD3)
+                  : Colors.transparent,
+              width: 2,
+            ),
           ),
         ),
-      ),
-      child: Text(
-        title,
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          color: selected ? const Color(0xFF175CD3) : Colors.black,
-          fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+
+        child: Text(
+          title,
+          textAlign: TextAlign.center,
+
+          style: TextStyle(
+            color: selected
+                ? const Color(0xFF175CD3)
+                : Colors.black,
+
+            fontWeight: selected
+                ? FontWeight.bold
+                : FontWeight.normal,
+          ),
         ),
       ),
     );
   }
 }
 
-// Reusable widget for each attendance record
+
+// Reusable widget for each attendance record.
 class AttendanceItem extends StatelessWidget {
   final String subject;
   final String professor;
@@ -201,30 +335,45 @@ class AttendanceItem extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(13),
+
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(13),
       ),
+
       child: Row(
         children: [
+          // Present / absent icon.
           Container(
             width: 34,
             height: 34,
+
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color:
-                  present ? const Color(0xFF3DBA70) : const Color(0xFFE84444),
+
+              color: present
+                  ? const Color(0xFF3DBA70)
+                  : const Color(0xFFE84444),
             ),
+
             child: Icon(
-              present ? Icons.check : Icons.close,
+              present
+                  ? Icons.check
+                  : Icons.close,
+
               color: Colors.white,
               size: 20,
             ),
           ),
+
           const SizedBox(width: 12),
+
+          // Subject and professor.
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+
               children: [
                 Text(
                   subject,
@@ -233,7 +382,9 @@ class AttendanceItem extends StatelessWidget {
                     fontSize: 13,
                   ),
                 ),
+
                 const SizedBox(height: 5),
+
                 Text(
                   professor,
                   style: const TextStyle(
@@ -244,23 +395,41 @@ class AttendanceItem extends StatelessWidget {
               ],
             ),
           ),
+
+          // Date, time and status.
           Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment:
+                CrossAxisAlignment.end,
+
             children: [
               Text(
                 date,
-                style: const TextStyle(fontSize: 10),
+                style: const TextStyle(
+                  fontSize: 10,
+                ),
               ),
+
               Text(
                 time,
-                style: const TextStyle(fontSize: 10),
+                style: const TextStyle(
+                  fontSize: 10,
+                ),
               ),
+
               const SizedBox(height: 5),
+
               Text(
-                present ? 'Present' : 'Absent',
+                present
+                    ? 'Present'
+                    : 'Absent',
+
                 style: TextStyle(
                   fontSize: 10,
-                  color: present ? Colors.green : Colors.red,
+
+                  color: present
+                      ? Colors.green
+                      : Colors.red,
+
                   fontWeight: FontWeight.bold,
                 ),
               ),

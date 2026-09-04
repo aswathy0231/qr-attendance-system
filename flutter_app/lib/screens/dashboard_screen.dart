@@ -1,33 +1,70 @@
 import 'package:flutter/material.dart';
 
-// Import screens that can be opened from the dashboard
+import '../models/student_model.dart';
+
 import 'scanner_screen.dart';
 import 'attendance_history_screen.dart';
 import 'profile_screen.dart';
 import 'login_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
-  final int studentId;
+  final StudentModel student;
 
   const DashboardScreen({
     super.key,
-    required this.studentId,
+    required this.student,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Scaffold provides the basic structure of the screen
+    // Get today's date
+    final now = DateTime.now();
+
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+
+    const weekdays = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+
+    final formattedDate =
+        '${now.day} ${months[now.month - 1]} ${now.year}';
+
+    final formattedDay = weekdays[now.weekday - 1];
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FC),
 
-      // Keeps content safe and allows the page to scroll
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             children: [
+
+              // ==================================================
               // HEADER
+              // ==================================================
+
               Container(
                 height: 155,
+
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
@@ -35,35 +72,49 @@ class DashboardScreen extends StatelessWidget {
                       Color(0xFF2D70E5),
                     ],
                   ),
+
                   borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(35),
                     bottomRight: Radius.circular(35),
                   ),
                 ),
+
                 padding: const EdgeInsets.all(20),
+
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+
                   children: [
+
                     const Icon(
                       Icons.menu,
                       color: Colors.white,
                       size: 27,
                     ),
+
                     const SizedBox(width: 20),
-                    const Expanded(
+
+                    Expanded(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment:
+                            CrossAxisAlignment.start,
+
                         children: [
+
+                          // Dynamic student name
                           Text(
-                            'Hello, Aswathy',
-                            style: TextStyle(
+                            'Hello, ${student.name}',
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          SizedBox(height: 4),
-                          Text(
+
+                          const SizedBox(height: 4),
+
+                          const Text(
                             'Good morning!',
                             style: TextStyle(
                               color: Colors.white,
@@ -73,6 +124,7 @@ class DashboardScreen extends StatelessWidget {
                         ],
                       ),
                     ),
+
                     const Icon(
                       Icons.notifications,
                       color: Colors.white,
@@ -81,61 +133,96 @@ class DashboardScreen extends StatelessWidget {
                 ),
               ),
 
+              // ==================================================
               // DATE CARD
+              // ==================================================
+
               Transform.translate(
                 offset: const Offset(0, -35),
+
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                  padding:
+                      const EdgeInsets.symmetric(
+                    horizontal: 18,
+                  ),
+
                   child: Container(
-                    padding: const EdgeInsets.all(16),
+                    padding:
+                        const EdgeInsets.all(16),
+
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(15),
+
+                      borderRadius:
+                          BorderRadius.circular(15),
+
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.06),
+                          color: Colors.black
+                              .withValues(alpha: 0.06),
                           blurRadius: 10,
                         ),
                       ],
                     ),
+
                     child: Row(
                       children: [
+
                         const Icon(
                           Icons.calendar_month,
                           color: Color(0xFF175CD3),
                         ),
+
                         const SizedBox(width: 12),
-                        const Expanded(
+
+                        Expanded(
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
+
                             children: [
-                              Text(
+
+                              const Text(
                                 "Today's Date",
-                                style: TextStyle(fontSize: 12),
-                              ),
-                              SizedBox(height: 3),
-                              Text(
-                                '21 July 2025',
                                 style: TextStyle(
-                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+
+                              const SizedBox(height: 3),
+
+                              // Dynamic date
+                              Text(
+                                formattedDate,
+                                style: const TextStyle(
+                                  fontWeight:
+                                      FontWeight.bold,
                                 ),
                               ),
                             ],
                           ),
                         ),
+
                         Container(
-                          padding: const EdgeInsets.symmetric(
+                          padding:
+                              const EdgeInsets.symmetric(
                             horizontal: 14,
                             vertical: 7,
                           ),
+
                           decoration: BoxDecoration(
-                            color: Color(0xFFEAF1FF),
-                            borderRadius: BorderRadius.circular(15),
+                            color:
+                                const Color(0xFFEAF1FF),
+
+                            borderRadius:
+                                BorderRadius.circular(15),
                           ),
-                          child: const Text(
-                            'Monday',
-                            style: TextStyle(
-                              color: Color(0xFF175CD3),
+
+                          child: Text(
+                            formattedDay,
+                            style: const TextStyle(
+                              color:
+                                  Color(0xFF175CD3),
                             ),
                           ),
                         ),
@@ -145,51 +232,74 @@ class DashboardScreen extends StatelessWidget {
                 ),
               ),
 
+              // ==================================================
               // THREE MAIN CARDS
+              // ==================================================
+
               Transform.translate(
                 offset: const Offset(0, -20),
+
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  padding:
+                      const EdgeInsets.symmetric(
+                    horizontal: 15,
+                  ),
+
                   child: Row(
                     children: [
+
+                      // ==================================================
                       // SCAN QR
+                      // ==================================================
+
                       Expanded(
                         child: _dashboardCard(
                           context,
                           Icons.qr_code_scanner,
                           const Color(0xFF4057E8),
                           'Scan QR',
+
                           ScannerScreen(
-                            studentId: studentId,
+                            studentId: student.id,
                           ),
                         ),
                       ),
 
                       const SizedBox(width: 10),
 
+                      // ==================================================
                       // ATTENDANCE HISTORY
+                      // ==================================================
+
                       Expanded(
                         child: _dashboardCard(
                           context,
                           Icons.assignment,
                           const Color(0xFF39B66A),
                           'Attendance',
+
                           AttendanceHistoryScreen(
-                            studentId: studentId,
+                            studentId: student.id,
                           ),
                         ),
                       ),
 
                       const SizedBox(width: 10),
 
+                      // ==================================================
                       // PROFILE
+                      // ==================================================
+
                       Expanded(
                         child: _dashboardCard(
                           context,
                           Icons.person,
                           const Color(0xFFFF9D2E),
                           'Profile',
-                          const ProfileScreen(),
+
+                          ProfileScreen(
+                            student: student,
+                          ),
                         ),
                       ),
                     ],
@@ -197,34 +307,56 @@ class DashboardScreen extends StatelessWidget {
                 ),
               ),
 
+              // ==================================================
               // NOTICE
+              // ==================================================
+
               Transform.translate(
                 offset: const Offset(0, -10),
+
                 child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 18),
-                  padding: const EdgeInsets.all(15),
+                  margin:
+                      const EdgeInsets.symmetric(
+                    horizontal: 18,
+                  ),
+
+                  padding:
+                      const EdgeInsets.all(15),
+
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(15),
+
+                    borderRadius:
+                        BorderRadius.circular(15),
                   ),
+
                   child: const Row(
                     children: [
+
                       Icon(
                         Icons.campaign_outlined,
                         color: Color(0xFF175CD3),
                       ),
+
                       SizedBox(width: 12),
+
                       Expanded(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
+
                           children: [
+
                             Text(
                               'Notice',
                               style: TextStyle(
-                                fontWeight: FontWeight.bold,
+                                fontWeight:
+                                    FontWeight.bold,
                               ),
                             ),
+
                             SizedBox(height: 5),
+
                             Text(
                               'Ensure you scan the QR code within the class time.',
                               style: TextStyle(
@@ -234,46 +366,70 @@ class DashboardScreen extends StatelessWidget {
                           ],
                         ),
                       ),
+
                       Icon(Icons.chevron_right),
                     ],
                   ),
                 ),
               ),
 
+              // ==================================================
               // LOGOUT BUTTON
+              // ==================================================
+
               Transform.translate(
                 offset: const Offset(0, -5),
+
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
+                  padding:
+                      const EdgeInsets.symmetric(
                     horizontal: 18,
                     vertical: 15,
                   ),
+
                   child: SizedBox(
                     width: double.infinity,
                     height: 50,
+
                     child: ElevatedButton.icon(
                       onPressed: () {
                         Navigator.pushAndRemoveUntil(
                           context,
+
                           MaterialPageRoute(
-                            builder: (context) => const LoginScreen(),
+                            builder: (context) =>
+                                const LoginScreen(),
                           ),
+
                           (route) => false,
                         );
                       },
-                      icon: const Icon(Icons.logout),
+
+                      icon: const Icon(
+                        Icons.logout,
+                      ),
+
                       label: const Text(
                         'Logout',
                         style: TextStyle(
                           fontSize: 15,
-                          fontWeight: FontWeight.bold,
+                          fontWeight:
+                              FontWeight.bold,
                         ),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE53935),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+
+                      style:
+                          ElevatedButton.styleFrom(
+                        backgroundColor:
+                            const Color(0xFFE53935),
+
+                        foregroundColor:
+                            Colors.white,
+
+                        shape:
+                            RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(12),
                         ),
                       ),
                     ),
@@ -287,7 +443,10 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  // Reusable function for creating the three dashboard cards
+  // ============================================================
+  // DASHBOARD CARD
+  // ============================================================
+
   Widget _dashboardCard(
     BuildContext context,
     IconData icon,
@@ -304,47 +463,67 @@ class DashboardScreen extends StatelessWidget {
           ),
         );
       },
+
       child: Container(
         height: 170,
-        padding: const EdgeInsets.all(10),
+
+        padding:
+            const EdgeInsets.all(10),
+
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
+
+          borderRadius:
+              BorderRadius.circular(15),
+
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: Colors.black
+                  .withValues(alpha: 0.04),
               blurRadius: 8,
             ),
           ],
         ),
+
         child: Column(
           children: [
+
             Container(
               width: 55,
               height: 55,
+
               decoration: BoxDecoration(
                 color: color,
-                borderRadius: BorderRadius.circular(17),
+
+                borderRadius:
+                    BorderRadius.circular(17),
               ),
+
               child: Icon(
                 icon,
                 color: Colors.white,
                 size: 30,
               ),
             ),
+
             const SizedBox(height: 10),
+
             Text(
               title,
               textAlign: TextAlign.center,
+
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
               ),
             ),
+
             const SizedBox(height: 5),
+
             const Text(
               'View your\nattendance',
               textAlign: TextAlign.center,
+
               style: TextStyle(
                 fontSize: 11,
               ),

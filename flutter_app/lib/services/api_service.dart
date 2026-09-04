@@ -2,15 +2,101 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-/// Handles all communication between the Flutter application
-/// and the Django backend.
-class ApiService {
-  // Django backend base URL.
-  // Replace this IP address if your computer's local IP changes.
-  static const String baseUrl = 'http://192.168.1.55:8000';
+import '../models/attendance_model.dart';
+import '../models/student_model.dart';
 
-  /// Sends the scanned QR token and student ID to the backend
-  /// to mark student attendance.
+class ApiService {
+  // Django backend
+  static const String baseUrl = 'http://127.0.0.1:8000';
+
+  // ============================================================
+  // STUDENT LOGIN
+  // ============================================================
+
+  Future<Map<String, dynamic>> studentLogin({
+    required String username,
+    required String password,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/login/'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'username': username,
+          'password': password,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return data;
+      } else {
+        throw Exception(
+          data['error'] ?? 'Invalid username or password.',
+        );
+      }
+    } catch (e) {
+      throw Exception('Could not connect to the server.');
+    }
+  }
+
+  // ============================================================
+  // GET ALL STUDENTS
+  // ============================================================
+
+  Future<List<StudentModel>> getStudents() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/students/'),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+
+        return data
+            .map(
+              (json) => StudentModel.fromJson(json),
+            )
+            .toList();
+      }
+
+      throw Exception('Failed to load students');
+    } catch (e) {
+      throw Exception('Could not load students.');
+    }
+  }
+
+  // ============================================================
+  // GET ONE STUDENT BY STUDENT ID
+  // ============================================================
+
+  Future<StudentModel> getStudentById({
+    required int studentId,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/students/$studentId/'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        return StudentModel.fromJson(data);
+      }
+
+      throw Exception('Failed to load student details');
+    } catch (e) {
+      throw Exception('Could not load student details.');
+    }
+  }
+
+  // ============================================================
+  // MARK ATTENDANCE
+  // ============================================================
+
   Future<Map<String, dynamic>> markAttendance({
     required int studentId,
     required String qrToken,
@@ -27,21 +113,53 @@ class ApiService {
         }),
       );
 
-      // Decode the backend response.
-      final Map<String, dynamic> data =
-          response.body.isNotEmpty ? jsonDecode(response.body) : {};
+      final data = jsonDecode(response.body);
 
-      // Add the HTTP status code so the UI can check the result.
-      data['statusCode'] = response.statusCode;
+      if (response.statusCode == 201) {
+        return data;
+      }
 
-      return data;
+      throw Exception(
+        data['error'] ?? 'Failed to mark attendance.',
+      );
     } catch (e) {
-      // Return a consistent error response if the server
-      // cannot be reached.
-      return {
-        'statusCode': 0,
-        'error': 'Could not connect to the server.',
-      };
+      throw Exception(
+        'Could not mark attendance.',
+      );
+    }
+  }
+
+  // ============================================================
+  // GET ATTENDANCE HISTORY
+  // ============================================================
+
+  Future<List<AttendanceModel>> getAttendanceHistory({
+    required int studentId,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+          '$baseUrl/api/attendance/history/?student_id=$studentId',
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+
+        return data
+            .map(
+              (json) => AttendanceModel.fromJson(json),
+            )
+            .toList();
+      }
+
+      throw Exception(
+        'Failed to load attendance history',
+      );
+    } catch (e) {
+      throw Exception(
+        'Could not load attendance history.',
+      );
     }
   }
 }
