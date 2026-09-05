@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     CreateAttendanceSessionView,
+    RefreshAttendanceQRView,
     EndAttendanceSessionView,
     MarkAttendanceView,
     AttendanceHistoryView,
@@ -13,6 +14,12 @@ urlpatterns = [
         'sessions/create/',
         CreateAttendanceSessionView.as_view(),
         name='create-attendance-session',
+    ),
+
+    path(
+    'sessions/<int:session_id>/qr/',
+    RefreshAttendanceQRView.as_view(),
+    name='refresh-attendance-qr',
     ),
 
     path(

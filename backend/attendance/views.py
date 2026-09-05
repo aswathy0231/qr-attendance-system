@@ -1,3 +1,4 @@
+import base64
 import secrets
 from datetime import timedelta
 
@@ -7,7 +8,6 @@ from rest_framework.response import Response
 from rest_framework import status
 
 import qrcode
-from django.core.files.base import ContentFile
 from io import BytesIO
 
 from .models import AttendanceSession, Attendance
@@ -69,6 +69,82 @@ class CreateAttendanceSessionView(APIView):
         return Response(
             AttendanceSessionSerializer(session).data,
             status=status.HTTP_201_CREATED
+        )
+
+
+class RefreshAttendanceQRView(APIView):
+
+    def post(self, request, session_id):
+
+        # Find the running attendance session
+        try:
+            session = AttendanceSession.objects.get(
+                session_id=session_id,
+                status='Running'
+            )
+
+        except AttendanceSession.DoesNotExist:
+            return Response(
+                {
+                    'error': 'Attendance session not found or already ended'
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Check whether the session has expired
+        if timezone.now() >= session.end_time:
+
+            session.status = 'Ended'
+
+            session.save(
+                update_fields=['status']
+            )
+
+            return Response(
+                {
+                    'error': 'Attendance session has expired'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Generate a completely new QR token
+        new_qr_token = secrets.token_urlsafe(32)
+
+        # Replace the old token
+        session.qr_token = new_qr_token
+
+        session.save(
+            update_fields=['qr_token']
+        )
+
+        # Generate QR image from the new token
+        qr = qrcode.make(new_qr_token)
+
+        buffer = BytesIO()
+
+        qr.save(
+            buffer,
+            format='PNG'
+        )
+
+        encoded_image = base64.b64encode(
+            buffer.getvalue()
+        ).decode('utf-8')
+
+        qr_image = (
+            f'data:image/png;base64,{encoded_image}'
+        )
+
+        return Response(
+            {
+                'session_id': session.session_id,
+                'qr_token': session.qr_token,
+                'qr_image': qr_image,
+                'start_time': session.start_time,
+                'end_time': session.end_time,
+                'status': session.status,
+            },
+            status=status.HTTP_200_OK
         )
 
 
@@ -156,7 +232,13 @@ class MarkAttendanceView(APIView):
             )
 
         # Check whether the attendance session has expired
-        if timezone.now() > session.end_time:
+        if timezone.now() >= session.end_time:
+            session.status = 'Ended'
+
+            session.save(
+                update_fields=['status']
+            )
+
             return Response(
                 {
                     'error': 'QR code has expired'

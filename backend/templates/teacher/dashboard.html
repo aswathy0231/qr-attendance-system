@@ -240,7 +240,17 @@
 
         .instruction {
             color: #667085;
+            margin-bottom: 12px;
+        }
+
+
+        /* QR Countdown */
+
+        .qr-countdown {
+            font-weight: bold;
+            color: #175cd3;
             margin-bottom: 20px;
+            font-size: 15px;
         }
 
 
@@ -535,6 +545,18 @@
             </p>
 
 
+            <!-- QR COUNTDOWN -->
+
+            <p
+                id="qr-countdown"
+                class="qr-countdown"
+            >
+
+                QR refreshes in 60 seconds
+
+            </p>
+
+
             <button
                 class="end-button"
                 onclick="endAttendance()"
@@ -581,6 +603,31 @@
 
         let sessionId = null;
 
+
+
+        /*
+         * QR ROTATION SETTINGS
+         *
+         * The QR code changes every 60 seconds.
+         */
+
+        const QR_ROTATION_INTERVAL = 60;
+
+
+        /*
+         * Stores the remaining countdown
+         * in seconds.
+         */
+
+        let qrCountdown =
+            QR_ROTATION_INTERVAL;
+
+
+        /*
+         * Stores the countdown timer.
+         */
+
+        let qrCountdownTimer = null;
 
 
         /*
@@ -752,7 +799,7 @@
 
 
                 /*
-                 * Display QR image.
+                 * Display the first QR image.
                  */
 
                 document.getElementById(
@@ -793,6 +840,13 @@
                     'hidden'
                 );
 
+
+                /*
+                 * Start the 60-second QR rotation.
+                 */
+
+                startQRRotation();
+
             }
 
 
@@ -803,6 +857,230 @@
                 );
 
                 console.error(error);
+
+            }
+
+        }
+
+
+
+        /*
+         * REFRESH QR CODE
+         *
+         * Requests a new QR token from
+         * the backend and replaces the
+         * QR image currently displayed.
+         */
+
+        async function refreshQRCode() {
+
+
+            /*
+             * Make sure there is an
+             * active attendance session.
+             */
+
+            if (sessionId === null) {
+
+                return;
+
+            }
+
+
+            try {
+
+
+                const response =
+                    await fetch(
+                        `/api/attendance/sessions/${sessionId}/qr/`,
+                        {
+                            method: 'POST',
+
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        }
+                    );
+
+
+                const data =
+                    await response.json();
+
+
+                /*
+                 * If the session has expired,
+                 * stop QR rotation.
+                 */
+
+                if (!response.ok) {
+
+                    stopQRRotation();
+
+
+                    /*
+                     * Hide the countdown because
+                     * the session is no longer active.
+                     */
+
+                    const countdownElement =
+                        document.getElementById(
+                            'qr-countdown'
+                        );
+
+
+                    if (countdownElement) {
+
+                        countdownElement.textContent =
+                            'Attendance session expired.';
+
+                    }
+
+
+                    alert(
+                        data.error ||
+                        'Attendance session has expired.'
+                    );
+
+                    return;
+
+                }
+
+
+                /*
+                 * Replace the old QR image
+                 * with the new QR image.
+                 */
+
+                document.getElementById(
+                    'qr-image'
+                ).src =
+                    data.qr_image;
+
+
+                /*
+                 * Reset the countdown.
+                 */
+
+                qrCountdown =
+                    QR_ROTATION_INTERVAL;
+
+
+                updateQRCountdown();
+
+            }
+
+
+            catch (error) {
+
+                console.error(
+                    'QR refresh failed:',
+                    error
+                );
+
+            }
+
+        }
+
+
+
+        /*
+         * UPDATE QR COUNTDOWN
+         */
+
+        function updateQRCountdown() {
+
+
+            const countdownElement =
+                document.getElementById(
+                    'qr-countdown'
+                );
+
+
+            if (countdownElement) {
+
+                countdownElement.textContent =
+                    `QR refreshes in ${qrCountdown} seconds`;
+
+            }
+
+        }
+
+
+
+        /*
+         * START QR ROTATION
+         */
+
+        function startQRRotation() {
+
+
+            /*
+             * Stop any existing timer first.
+             */
+
+            stopQRRotation();
+
+
+            /*
+             * Reset countdown.
+
+             */
+
+            qrCountdown =
+                QR_ROTATION_INTERVAL;
+
+
+            updateQRCountdown();
+
+
+            /*
+             * Run the countdown every second.
+             */
+
+            qrCountdownTimer =
+                setInterval(
+                    function() {
+
+
+                        qrCountdown--;
+
+
+                        updateQRCountdown();
+
+
+                        /*
+                         * When countdown reaches zero,
+                         * request a new QR code.
+                         */
+
+                        if (qrCountdown <= 0) {
+
+                            refreshQRCode();
+
+                        }
+
+                    },
+                    1000
+                );
+
+        }
+
+
+
+        /*
+         * STOP QR ROTATION
+         */
+
+        function stopQRRotation() {
+
+
+            if (qrCountdownTimer !== null) {
+
+                clearInterval(
+                    qrCountdownTimer
+                );
+
+                qrCountdownTimer = null;
 
             }
 
@@ -827,6 +1105,13 @@
                 return;
 
             }
+
+
+            /*
+             * Stop QR rotation immediately.
+             */
+
+            stopQRRotation();
 
 
             try {
@@ -862,6 +1147,14 @@
 
                 if (!response.ok) {
 
+                    /*
+                     * Restart QR rotation if the
+                     * session was not successfully ended.
+                     */
+
+                    startQRRotation();
+
+
                     alert(
                         data.error ||
                         'Failed to end attendance.'
@@ -885,9 +1178,19 @@
 
             catch (error) {
 
+
+                /*
+                 * Restart QR rotation because
+                 * the session may still be active.
+                 */
+
+                startQRRotation();
+
+
                 alert(
                     'Could not connect to the server.'
                 );
+
 
                 console.error(error);
 
