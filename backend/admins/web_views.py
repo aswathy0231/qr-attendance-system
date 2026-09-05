@@ -142,7 +142,8 @@ def add_student(request):
             'error_message': error_message,
         }
     )
-    
+
+
 def edit_student(request, student_id):
 
     if 'admin_user_id' not in request.session:
@@ -179,6 +180,8 @@ def edit_student(request, student_id):
             'error_message': error_message,
         }
     )
+
+
 def delete_student(request, student_id):
 
     if 'admin_user_id' not in request.session:
@@ -202,6 +205,7 @@ def delete_student(request, student_id):
 
     return redirect('/admin-web/students/')
 
+
 def manage_teachers(request):
 
     if 'admin_user_id' not in request.session:
@@ -216,7 +220,8 @@ def manage_teachers(request):
             'teachers': teachers,
         }
     )
-    
+
+
 def add_teacher(request):
 
     if 'admin_user_id' not in request.session:
@@ -239,7 +244,7 @@ def add_teacher(request):
                 department_id=department_id
             ).exists():
                 raise ValueError(
-                    f'Department ID {department_id} does not exist.'
+                    f'Class ID {department_id} does not exist.'
                 )
 
             with transaction.atomic():
@@ -272,7 +277,8 @@ def add_teacher(request):
             'error_message': error_message,
         }
     )
-    
+
+
 def edit_teacher(request, teacher_id):
 
     if 'admin_user_id' not in request.session:
@@ -323,7 +329,8 @@ def edit_teacher(request, teacher_id):
             'error_message': error_message,
         }
     )
-    
+
+
 def delete_teacher(request, teacher_id):
 
     if 'admin_user_id' not in request.session:
@@ -350,6 +357,7 @@ def delete_teacher(request, teacher_id):
             pass
 
     return redirect('/admin-web/teachers/')
+
 
 def manage_classes(request):
 
@@ -455,23 +463,32 @@ def delete_class(request, class_id):
 
     return redirect('/admin-web/classes/')
 
+
 def manage_subjects(request):
+
     if 'admin_user_id' not in request.session:
         return redirect('/admin-web/login/')
 
     subjects = Subject.objects.all()
 
-    return render(request, 'admin/subjects.html', {
-        'subjects': subjects,
-    })
-    
+    return render(
+        request,
+        'admin/subjects.html',
+        {
+            'subjects': subjects,
+        }
+    )
+
+
 def add_subject(request):
+
     if 'admin_user_id' not in request.session:
         return redirect('/admin-web/login/')
 
     error_message = None
 
     if request.method == 'POST':
+
         try:
             Subject.objects.create(
                 subject_code=request.POST.get('subject_code'),
@@ -484,11 +501,17 @@ def add_subject(request):
         except Exception as e:
             error_message = str(e)
 
-    return render(request, 'admin/add_subject.html', {
-        'error_message': error_message,
-    })
-    
+    return render(
+        request,
+        'admin/add_subject.html',
+        {
+            'error_message': error_message,
+        }
+    )
+
+
 def edit_subject(request, subject_id):
+
     if 'admin_user_id' not in request.session:
         return redirect('/admin-web/login/')
 
@@ -500,6 +523,7 @@ def edit_subject(request, subject_id):
     error_message = None
 
     if request.method == 'POST':
+
         try:
             subject.subject_code = request.POST.get('subject_code')
             subject.subject_name = request.POST.get('subject_name')
@@ -512,45 +536,51 @@ def edit_subject(request, subject_id):
         except Exception as e:
             error_message = str(e)
 
-    return render(request, 'admin/edit_subject.html', {
-        'subject': subject,
-        'error_message': error_message,
-    })
-    
+    return render(
+        request,
+        'admin/edit_subject.html',
+        {
+            'subject': subject,
+            'error_message': error_message,
+        }
+    )
+
+
 def delete_subject(request, subject_id):
+
     if 'admin_user_id' not in request.session:
         return redirect('/admin-web/login/')
 
     if request.method == 'POST':
+
         try:
             subject = Subject.objects.get(subject_id=subject_id)
             subject.delete()
+
         except Subject.DoesNotExist:
             pass
 
     return redirect('/admin-web/subjects/')
 
+
 def manage_subject_assignments(request):
+
     if 'admin_user_id' not in request.session:
         return redirect('/admin-web/login/')
 
     assignments = SubjectAssignment.objects.all()
 
-    return render(request, 'admin/subject_assignments.html', {
-        'assignments': assignments,
-    })
-    
-def manage_subject_assignments(request):
-    if 'admin_user_id' not in request.session:
-        return redirect('/admin-web/login/')
+    return render(
+        request,
+        'admin/subject_assignments.html',
+        {
+            'assignments': assignments,
+        }
+    )
 
-    assignments = SubjectAssignment.objects.all()
 
-    return render(request, 'admin/subject_assignments.html', {
-        'assignments': assignments,
-    })
-    
 def add_subject_assignment(request):
+
     if 'admin_user_id' not in request.session:
         return redirect('/admin-web/login/')
 
@@ -561,6 +591,7 @@ def add_subject_assignment(request):
     classes = Class.objects.all()
 
     if request.method == 'POST':
+
         try:
             SubjectAssignment.objects.create(
                 teacher_id=request.POST.get('teacher_id'),
@@ -575,14 +606,20 @@ def add_subject_assignment(request):
         except Exception as e:
             error_message = str(e)
 
-    return render(request, 'admin/add_subject_assignment.html', {
-        'teachers': teachers,
-        'subjects': subjects,
-        'classes': classes,
-        'error_message': error_message,
-    })
-    
+    return render(
+        request,
+        'admin/add_subject_assignment.html',
+        {
+            'teachers': teachers,
+            'subjects': subjects,
+            'classes': classes,
+            'error_message': error_message,
+        }
+    )
+
+
 def edit_subject_assignment(request, assignment_id):
+
     if 'admin_user_id' not in request.session:
         return redirect('/admin-web/login/')
 
@@ -600,6 +637,7 @@ def edit_subject_assignment(request, assignment_id):
     classes = Class.objects.all()
 
     if request.method == 'POST':
+
         try:
             assignment.teacher_id = request.POST.get('teacher_id')
             assignment.subject_id = request.POST.get('subject_id')
@@ -614,40 +652,56 @@ def edit_subject_assignment(request, assignment_id):
         except Exception as e:
             error_message = str(e)
 
-    return render(request, 'admin/edit_subject_assignment.html', {
-        'assignment': assignment,
-        'teachers': teachers,
-        'subjects': subjects,
-        'classes': classes,
-        'error_message': error_message,
-    })
-    
+    return render(
+        request,
+        'admin/edit_subject_assignment.html',
+        {
+            'assignment': assignment,
+            'teachers': teachers,
+            'subjects': subjects,
+            'classes': classes,
+            'error_message': error_message,
+        }
+    )
+
+
 def delete_subject_assignment(request, assignment_id):
+
     if 'admin_user_id' not in request.session:
         return redirect('/admin-web/login/')
 
     if request.method == 'POST':
+
         try:
             assignment = SubjectAssignment.objects.get(
                 assignment_id=assignment_id
             )
             assignment.delete()
+
         except SubjectAssignment.DoesNotExist:
             pass
 
     return redirect('/admin-web/subject-assignments/')
 
+
 def manage_timetables(request):
+
     if 'admin_user_id' not in request.session:
         return redirect('/admin-web/login/')
 
     timetables = Timetable.objects.all()
 
-    return render(request, 'admin/timetables.html', {
-        'timetables': timetables,
-    })
-    
+    return render(
+        request,
+        'admin/timetables.html',
+        {
+            'timetables': timetables,
+        }
+    )
+
+
 def add_timetable(request):
+
     if 'admin_user_id' not in request.session:
         return redirect('/admin-web/login/')
 
@@ -658,6 +712,7 @@ def add_timetable(request):
     classes = Class.objects.all()
 
     if request.method == 'POST':
+
         try:
             Timetable.objects.create(
                 class_id=request.POST.get('class_id'),
@@ -673,14 +728,20 @@ def add_timetable(request):
         except Exception as e:
             error_message = str(e)
 
-    return render(request, 'admin/add_timetable.html', {
-        'teachers': teachers,
-        'subjects': subjects,
-        'classes': classes,
-        'error_message': error_message,
-    })
-    
+    return render(
+        request,
+        'admin/add_timetable.html',
+        {
+            'teachers': teachers,
+            'subjects': subjects,
+            'classes': classes,
+            'error_message': error_message,
+        }
+    )
+
+
 def edit_timetable(request, timetable_id):
+
     if 'admin_user_id' not in request.session:
         return redirect('/admin-web/login/')
 
@@ -698,6 +759,7 @@ def edit_timetable(request, timetable_id):
     classes = Class.objects.all()
 
     if request.method == 'POST':
+
         try:
             timetable.class_id = request.POST.get('class_id')
             timetable.subject_id = request.POST.get('subject_id')
@@ -713,24 +775,32 @@ def edit_timetable(request, timetable_id):
         except Exception as e:
             error_message = str(e)
 
-    return render(request, 'admin/edit_timetable.html', {
-        'timetable': timetable,
-        'teachers': teachers,
-        'subjects': subjects,
-        'classes': classes,
-        'error_message': error_message,
-    })
-    
+    return render(
+        request,
+        'admin/edit_timetable.html',
+        {
+            'timetable': timetable,
+            'teachers': teachers,
+            'subjects': subjects,
+            'classes': classes,
+            'error_message': error_message,
+        }
+    )
+
+
 def delete_timetable(request, timetable_id):
+
     if 'admin_user_id' not in request.session:
         return redirect('/admin-web/login/')
 
     if request.method == 'POST':
+
         try:
             timetable = Timetable.objects.get(
                 timetable_id=timetable_id
             )
             timetable.delete()
+
         except Timetable.DoesNotExist:
             pass
 

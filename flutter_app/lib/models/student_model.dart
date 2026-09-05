@@ -7,6 +7,12 @@ class StudentModel {
   final String phone;
   final int classId;
 
+  // Additional academic information
+  final String className;
+  final int semester;
+  final String section;
+  final String departmentName;
+
   StudentModel({
     required this.id,
     required this.userId,
@@ -15,6 +21,10 @@ class StudentModel {
     required this.registerNumber,
     required this.phone,
     required this.classId,
+    required this.className,
+    required this.semester,
+    required this.section,
+    required this.departmentName,
   });
 
   factory StudentModel.fromJson(Map<String, dynamic> json) {
@@ -26,6 +36,10 @@ class StudentModel {
       registerNumber: json['register_no'] ?? '',
       phone: json['phone'] ?? '',
       classId: json['class_id'] ?? 0,
+      className: json['class_name'] ?? '',
+      semester: json['semester'] ?? 0,
+      section: json['section'] ?? '',
+      departmentName: json['department_name'] ?? '',
     );
   }
 
@@ -38,6 +52,10 @@ class StudentModel {
       'register_no': registerNumber,
       'phone': phone,
       'class_id': classId,
+      'class_name': className,
+      'semester': semester,
+      'section': section,
+      'department_name': departmentName,
     };
   }
 }

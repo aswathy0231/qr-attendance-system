@@ -16,13 +16,15 @@ class AttendanceModel {
 
   /// Creates an AttendanceModel object from JSON data
   /// received from the Django backend.
-  factory AttendanceModel.fromJson(Map<String, dynamic> json) {
+  factory AttendanceModel.fromJson(
+    Map<String, dynamic> json,
+  ) {
     return AttendanceModel(
-      subject: json['subject'] ?? '',
-      professor: json['professor'] ?? '',
-      date: json['date'] ?? '',
-      time: json['time'] ?? '',
-      status: json['status'] ?? '',
+      subject: json['subject']?.toString() ?? '',
+      professor: json['professor']?.toString() ?? '',
+      date: json['date']?.toString() ?? '',
+      time: json['time']?.toString() ?? '',
+      status: json['status']?.toString() ?? '',
     );
   }
 

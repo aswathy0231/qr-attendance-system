@@ -233,6 +233,7 @@ class MarkAttendanceView(APIView):
 
         # Check whether the attendance session has expired
         if timezone.now() >= session.end_time:
+
             session.status = 'Ended'
 
             session.save(
@@ -270,13 +271,48 @@ class MarkAttendanceView(APIView):
             status='Present'
         )
 
+        # Get subject information
+        try:
+            assignment = SubjectAssignment.objects.get(
+                assignment_id=session.assignment_id
+            )
+
+            subject = Subject.objects.get(
+                subject_id=assignment.subject_id
+            )
+
+        except (
+            SubjectAssignment.DoesNotExist,
+            Subject.DoesNotExist
+        ):
+            return Response(
+                {
+                    'error': 'Subject information not found'
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # Convert attendance time to local timezone
+        local_attendance_time = timezone.localtime(
+            attendance.attendance_time
+        )
+
         return Response(
             {
                 'message': 'Attendance marked successfully',
                 'attendance_id': attendance.attendance_id,
                 'student_id': attendance.student_id,
                 'session_id': attendance.session_id,
-                'status': attendance.status
+                'status': attendance.status,
+
+                # Data for Attendance Result screen
+                'subject': subject.subject_name,
+                'date': local_attendance_time.strftime(
+                    '%d %B %Y'
+                ),
+                'time': local_attendance_time.strftime(
+                    '%I:%M %p'
+                ),
             },
             status=status.HTTP_201_CREATED
         )

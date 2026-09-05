@@ -7,7 +7,6 @@ import '../models/student_model.dart';
 import '../services/api_service.dart';
 
 import 'dashboard_screen.dart';
-import 'teacher_login_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,11 +16,9 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController studentIdController =
-      TextEditingController();
+  final TextEditingController studentIdController = TextEditingController();
 
-  final TextEditingController passwordController =
-      TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
   bool obscurePassword = true;
   bool isLoading = false;
@@ -100,8 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
         final apiService = ApiService();
 
         // Fetch the student's actual details from the database.
-        final StudentModel student =
-            await apiService.getStudentById(
+        final StudentModel student = await apiService.getStudentById(
           studentId: studentId,
         );
 
@@ -164,19 +160,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   // ============================================================
-  // TEACHER LOGIN
-  // ============================================================
-
-  void openTeacherLogin() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const TeacherLoginScreen(),
-      ),
-    );
-  }
-
-  // ============================================================
   // UI
   // ============================================================
 
@@ -184,19 +167,16 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
-
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             children: [
-
               // ==================================================
               // HEADER
               // ==================================================
 
               Container(
                 height: 170,
-
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
@@ -204,24 +184,19 @@ class _LoginScreenState extends State<LoginScreen> {
                       Color(0xFF2872E8),
                     ],
                   ),
-
                   borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(45),
                     bottomRight: Radius.circular(45),
                   ),
                 ),
-
                 child: Center(
                   child: Container(
                     width: 80,
                     height: 80,
-
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius:
-                          BorderRadius.circular(22),
+                      borderRadius: BorderRadius.circular(22),
                     ),
-
                     child: const Icon(
                       Icons.school,
                       size: 50,
@@ -261,82 +236,80 @@ class _LoginScreenState extends State<LoginScreen> {
               // ==================================================
 
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 22),
-
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 22,
+                ),
                 child: Column(
                   children: [
+                    // ==================================================
+                    // STUDENT ID
+                    // ==================================================
 
-                    // Student ID
                     TextField(
                       controller: studentIdController,
                       enabled: !isLoading,
-
                       decoration: InputDecoration(
-                        prefixIcon:
-                            const Icon(Icons.person),
-
+                        prefixIcon: const Icon(
+                          Icons.person,
+                        ),
                         hintText: 'Student ID',
-
                         filled: true,
                         fillColor: Colors.white,
-
                         border: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                     ),
 
                     const SizedBox(height: 12),
 
-                    // Password
+                    // ==================================================
+                    // PASSWORD
+                    // ==================================================
+
                     TextField(
                       controller: passwordController,
                       enabled: !isLoading,
-
                       obscureText: obscurePassword,
-
                       decoration: InputDecoration(
-                        prefixIcon:
-                            const Icon(Icons.lock),
-
+                        prefixIcon: const Icon(
+                          Icons.lock,
+                        ),
                         suffixIcon: IconButton(
                           icon: Icon(
                             obscurePassword
                                 ? Icons.visibility_off
                                 : Icons.visibility,
                           ),
-
                           onPressed: () {
                             setState(() {
-                              obscurePassword =
-                                  !obscurePassword;
+                              obscurePassword = !obscurePassword;
                             });
                           },
                         ),
-
                         hintText: 'Password',
-
                         filled: true,
                         fillColor: Colors.white,
-
                         border: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                     ),
 
-                    // Forgot password
+                    // ==================================================
+                    // FORGOT PASSWORD
+                    // ==================================================
+
                     Align(
-                      alignment:
-                          Alignment.centerRight,
-
+                      alignment: Alignment.centerRight,
                       child: TextButton(
-                        onPressed:
-                            isLoading ? null : () {},
-
+                        onPressed: isLoading
+                            ? null
+                            : () {
+                                _showError(
+                                  'Please contact Admin to reset your password.',
+                                );
+                              },
                         child: const Text(
                           'Forgot Password?',
                           style: TextStyle(
@@ -355,35 +328,20 @@ class _LoginScreenState extends State<LoginScreen> {
                     SizedBox(
                       width: double.infinity,
                       height: 52,
-
                       child: ElevatedButton(
-                        onPressed:
-                            isLoading
-                                ? null
-                                : studentLogin,
-
-                        style:
-                            ElevatedButton.styleFrom(
-                          backgroundColor:
-                              const Color(0xFF175CD3),
-
-                          foregroundColor:
-                              Colors.white,
-
-                          shape:
-                              RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(14),
+                        onPressed: isLoading ? null : studentLogin,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF175CD3),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-
                         child: isLoading
                             ? const SizedBox(
                                 width: 22,
                                 height: 22,
-
-                                child:
-                                    CircularProgressIndicator(
+                                child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   color: Colors.white,
                                 ),
@@ -392,8 +350,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 'Login',
                                 style: TextStyle(
                                   fontSize: 16,
-                                  fontWeight:
-                                      FontWeight.bold,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                       ),
@@ -402,94 +359,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 25),
 
                     // ==================================================
-                    // OR
+                    // ACCOUNT INFORMATION
                     // ==================================================
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Divider(
-                            color:
-                                Colors.grey.shade300,
-                          ),
-                        ),
-
-                        const Padding(
-                          padding:
-                              EdgeInsets.symmetric(
-                            horizontal: 15,
-                          ),
-
-                          child: Text('OR'),
-                        ),
-
-                        Expanded(
-                          child: Divider(
-                            color:
-                                Colors.grey.shade300,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 18),
 
                     const Text(
                       "Don't have an account? Contact Admin",
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 13,
                         color: Color(0xFF667085),
                       ),
                     ),
 
-                    const SizedBox(height: 12),
-
-                    // ==================================================
-                    // TEACHER LOGIN
-                    // ==================================================
-
-                    OutlinedButton.icon(
-                      onPressed:
-                          isLoading
-                              ? null
-                              : openTeacherLogin,
-
-                      icon: const Icon(
-                        Icons.school_outlined,
-                        size: 20,
-                      ),
-
-                      label: const Text(
-                        'Teacher Login',
-                        style: TextStyle(
-                          fontWeight:
-                              FontWeight.bold,
-                        ),
-                      ),
-
-                      style:
-                          OutlinedButton.styleFrom(
-                        foregroundColor:
-                            const Color(0xFF175CD3),
-
-                        side: const BorderSide(
-                          color:
-                              Color(0xFF175CD3),
-                        ),
-
-                        minimumSize:
-                            const Size(
-                          double.infinity,
-                          48,
-                        ),
-
-                        shape:
-                            RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),

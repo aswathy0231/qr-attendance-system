@@ -9,6 +9,7 @@ from .views import (
 from .web_views import (
     teacher_dashboard,
     teacher_attendance,
+    teacher_attendance_history,
 )
 
 
@@ -46,5 +47,12 @@ urlpatterns = [
         'attendance/<int:session_id>/',
         teacher_attendance,
         name='teacher-attendance',
+    ),
+
+    # Teacher attendance history
+    path(
+        'attendance-history/',
+        teacher_attendance_history,
+        name='teacher-attendance-history',
     ),
 ]
