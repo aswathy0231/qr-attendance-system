@@ -19,12 +19,44 @@ from teachers.models import Teacher
 from students.models import Student
 
 
+# ============================================================
+# SESSION EXPIRY HELPER
+# ============================================================
+
+def expire_session_if_needed(session):
+    """
+    Automatically change a running attendance session
+    to Ended when its end time has been reached.
+    """
+
+    if (
+        session.status == 'Running'
+        and timezone.now() >= session.end_time
+    ):
+        session.status = 'Ended'
+
+        session.save(
+            update_fields=['status']
+        )
+
+        return True
+
+    return False
+
+
+# ============================================================
+# CREATE ATTENDANCE SESSION
+# ============================================================
+
 class CreateAttendanceSessionView(APIView):
 
     def post(self, request):
 
         assignment_id = request.data.get('assignment_id')
-        duration_minutes = request.data.get('duration_minutes', 10)
+        duration_minutes = request.data.get(
+            'duration_minutes',
+            10
+        )
 
         # Check required data
         if not assignment_id:
@@ -43,16 +75,24 @@ class CreateAttendanceSessionView(APIView):
                 raise ValueError
 
         except (ValueError, TypeError):
+
             return Response(
                 {
-                    'error': 'duration_minutes must be a positive number'
+                    'error': (
+                        'duration_minutes must be '
+                        'a positive number'
+                    )
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         # Create session times
         start_time = timezone.now()
-        end_time = start_time + timedelta(minutes=duration_minutes)
+
+        end_time = (
+            start_time
+            + timedelta(minutes=duration_minutes)
+        )
 
         # Generate unique QR token
         qr_token = secrets.token_urlsafe(32)
@@ -72,6 +112,10 @@ class CreateAttendanceSessionView(APIView):
         )
 
 
+# ============================================================
+# REFRESH QR CODE
+# ============================================================
+
 class RefreshAttendanceQRView(APIView):
 
     def post(self, request, session_id):
@@ -84,30 +128,30 @@ class RefreshAttendanceQRView(APIView):
             )
 
         except AttendanceSession.DoesNotExist:
+
             return Response(
                 {
-                    'error': 'Attendance session not found or already ended'
+                    'error': (
+                        'Attendance session not found '
+                        'or already ended'
+                    )
                 },
                 status=status.HTTP_404_NOT_FOUND
             )
 
         # Check whether the session has expired
-        if timezone.now() >= session.end_time:
-
-            session.status = 'Ended'
-
-            session.save(
-                update_fields=['status']
-            )
+        if expire_session_if_needed(session):
 
             return Response(
                 {
-                    'error': 'Attendance session has expired'
+                    'error': (
+                        'Attendance session has expired'
+                    )
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Generate a completely new QR token
+        # Generate a new QR token
         new_qr_token = secrets.token_urlsafe(32)
 
         # Replace the old token
@@ -117,7 +161,7 @@ class RefreshAttendanceQRView(APIView):
             update_fields=['qr_token']
         )
 
-        # Generate QR image from the new token
+        # Generate QR image
         qr = qrcode.make(new_qr_token)
 
         buffer = BytesIO()
@@ -148,6 +192,10 @@ class RefreshAttendanceQRView(APIView):
         )
 
 
+# ============================================================
+# END ATTENDANCE SESSION
+# ============================================================
+
 class EndAttendanceSessionView(APIView):
 
     def post(self, request):
@@ -156,6 +204,7 @@ class EndAttendanceSessionView(APIView):
 
         # Check required data
         if not session_id:
+
             return Response(
                 {
                     'error': 'session_id is required'
@@ -163,7 +212,7 @@ class EndAttendanceSessionView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Find the running session
+        # Find the session
         try:
             session = AttendanceSession.objects.get(
                 session_id=session_id,
@@ -171,14 +220,32 @@ class EndAttendanceSessionView(APIView):
             )
 
         except AttendanceSession.DoesNotExist:
+
             return Response(
                 {
-                    'error': 'Attendance session not found or already ended'
+                    'error': (
+                        'Attendance session not found '
+                        'or already ended'
+                    )
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # End the session
+        # Check if it has already expired
+        if expire_session_if_needed(session):
+
+            return Response(
+                {
+                    'error': (
+                        'Attendance session has already expired'
+                    ),
+                    'session_id': session.session_id,
+                    'status': session.status,
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # End the session manually
         session.status = 'Ended'
         session.end_time = timezone.now()
 
@@ -191,7 +258,9 @@ class EndAttendanceSessionView(APIView):
 
         return Response(
             {
-                'message': 'Attendance session ended successfully',
+                'message': (
+                    'Attendance session ended successfully'
+                ),
                 'session_id': session.session_id,
                 'status': session.status,
                 'end_time': session.end_time
@@ -199,6 +268,10 @@ class EndAttendanceSessionView(APIView):
             status=status.HTTP_200_OK
         )
 
+
+# ============================================================
+# MARK ATTENDANCE
+# ============================================================
 
 class MarkAttendanceView(APIView):
 
@@ -209,9 +282,13 @@ class MarkAttendanceView(APIView):
 
         # Check required data
         if not student_id or not qr_token:
+
             return Response(
                 {
-                    'error': 'student_id and qr_token are required'
+                    'error': (
+                        'student_id and qr_token '
+                        'are required'
+                    )
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
@@ -224,6 +301,7 @@ class MarkAttendanceView(APIView):
             )
 
         except AttendanceSession.DoesNotExist:
+
             return Response(
                 {
                     'error': 'Invalid or inactive QR code'
@@ -231,14 +309,8 @@ class MarkAttendanceView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Check whether the attendance session has expired
-        if timezone.now() >= session.end_time:
-
-            session.status = 'Ended'
-
-            session.save(
-                update_fields=['status']
-            )
+        # Check whether the session has expired
+        if expire_session_if_needed(session):
 
             return Response(
                 {
@@ -254,6 +326,7 @@ class MarkAttendanceView(APIView):
         ).exists()
 
         if already_marked:
+
             return Response(
                 {
                     'error': 'Attendance already marked'
@@ -273,6 +346,7 @@ class MarkAttendanceView(APIView):
 
         # Get subject information
         try:
+
             assignment = SubjectAssignment.objects.get(
                 assignment_id=session.assignment_id
             )
@@ -285,9 +359,12 @@ class MarkAttendanceView(APIView):
             SubjectAssignment.DoesNotExist,
             Subject.DoesNotExist
         ):
+
             return Response(
                 {
-                    'error': 'Subject information not found'
+                    'error': (
+                        'Subject information not found'
+                    )
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
@@ -299,7 +376,9 @@ class MarkAttendanceView(APIView):
 
         return Response(
             {
-                'message': 'Attendance marked successfully',
+                'message': (
+                    'Attendance marked successfully'
+                ),
                 'attendance_id': attendance.attendance_id,
                 'student_id': attendance.student_id,
                 'session_id': attendance.session_id,
@@ -307,9 +386,11 @@ class MarkAttendanceView(APIView):
 
                 # Data for Attendance Result screen
                 'subject': subject.subject_name,
+
                 'date': local_attendance_time.strftime(
                     '%d %B %Y'
                 ),
+
                 'time': local_attendance_time.strftime(
                     '%I:%M %p'
                 ),
@@ -318,14 +399,21 @@ class MarkAttendanceView(APIView):
         )
 
 
+# ============================================================
+# STUDENT ATTENDANCE HISTORY
+# ============================================================
+
 class AttendanceHistoryView(APIView):
 
     def get(self, request):
 
-        student_id = request.query_params.get('student_id')
+        student_id = request.query_params.get(
+            'student_id'
+        )
 
         # Check required data
         if not student_id:
+
             return Response(
                 {
                     'error': 'student_id is required'
@@ -335,12 +423,16 @@ class AttendanceHistoryView(APIView):
 
         # Validate student ID
         try:
+
             student_id = int(student_id)
 
         except (ValueError, TypeError):
+
             return Response(
                 {
-                    'error': 'student_id must be a number'
+                    'error': (
+                        'student_id must be a number'
+                    )
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
@@ -355,6 +447,7 @@ class AttendanceHistoryView(APIView):
         for attendance in attendance_records:
 
             try:
+
                 # Get attendance session
                 session = AttendanceSession.objects.get(
                     session_id=attendance.session_id
@@ -375,36 +468,46 @@ class AttendanceHistoryView(APIView):
                     teacher_id=assignment.teacher_id
                 )
 
-                # Convert UTC time to local Django timezone
+                # Convert UTC time to local timezone
                 local_attendance_time = (
-                    timezone.localtime(attendance.attendance_time)
+                    timezone.localtime(
+                        attendance.attendance_time
+                    )
                     if attendance.attendance_time
                     else None
                 )
 
-                history.append({
-                    'attendance_id': attendance.attendance_id,
-                    'subject': subject.subject_name,
-                    'professor': teacher.full_name,
+                history.append(
+                    {
+                        'attendance_id':
+                            attendance.attendance_id,
 
-                    'date': (
-                        local_attendance_time.strftime(
-                            '%d %B %Y'
-                        )
-                        if local_attendance_time
-                        else ''
-                    ),
+                        'subject':
+                            subject.subject_name,
 
-                    'time': (
-                        local_attendance_time.strftime(
-                            '%I:%M %p'
-                        )
-                        if local_attendance_time
-                        else ''
-                    ),
+                        'professor':
+                            teacher.full_name,
 
-                    'status': attendance.status,
-                })
+                        'date': (
+                            local_attendance_time.strftime(
+                                '%d %B %Y'
+                            )
+                            if local_attendance_time
+                            else ''
+                        ),
+
+                        'time': (
+                            local_attendance_time.strftime(
+                                '%I:%M %p'
+                            )
+                            if local_attendance_time
+                            else ''
+                        ),
+
+                        'status':
+                            attendance.status,
+                    }
+                )
 
             except (
                 AttendanceSession.DoesNotExist,
@@ -412,7 +515,7 @@ class AttendanceHistoryView(APIView):
                 Subject.DoesNotExist,
                 Teacher.DoesNotExist
             ):
-                # Skip incomplete attendance relationships
+
                 continue
 
         return Response(
@@ -421,46 +524,69 @@ class AttendanceHistoryView(APIView):
         )
 
 
+# ============================================================
+# TEACHER ATTENDANCE DETAILS
+# ============================================================
+
 class TeacherAttendanceView(APIView):
 
-    def get(self, request, teacher_id, session_id):
+    def get(
+        self,
+        request,
+        teacher_id,
+        session_id
+    ):
 
         # Find the attendance session
         try:
+
             session = AttendanceSession.objects.get(
                 session_id=session_id
             )
 
         except AttendanceSession.DoesNotExist:
+
             return Response(
                 {
-                    'error': 'Attendance session not found'
+                    'error': (
+                        'Attendance session not found'
+                    )
                 },
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        # Check whether the session has expired
+        expire_session_if_needed(session)
+
         # Check that this session belongs to this teacher
         try:
+
             assignment = SubjectAssignment.objects.get(
                 assignment_id=session.assignment_id,
                 teacher_id=teacher_id
             )
 
         except SubjectAssignment.DoesNotExist:
+
             return Response(
                 {
-                    'error': 'This attendance session does not belong to this teacher'
+                    'error': (
+                        'This attendance session does not '
+                        'belong to this teacher'
+                    )
                 },
                 status=status.HTTP_403_FORBIDDEN
             )
 
         # Get subject
         try:
+
             subject = Subject.objects.get(
                 subject_id=assignment.subject_id
             )
 
         except Subject.DoesNotExist:
+
             return Response(
                 {
                     'error': 'Subject not found'
@@ -478,12 +604,13 @@ class TeacherAttendanceView(APIView):
         for attendance in attendance_records:
 
             try:
+
                 # Get student
                 student = Student.objects.get(
                     student_id=attendance.student_id
                 )
 
-                # Convert UTC time to local Django timezone
+                # Convert UTC time to local timezone
                 local_attendance_time = (
                     timezone.localtime(
                         attendance.attendance_time
@@ -492,45 +619,68 @@ class TeacherAttendanceView(APIView):
                     else None
                 )
 
-                attendance_list.append({
-                    'attendance_id': attendance.attendance_id,
-                    'student_id': student.student_id,
-                    'student_name': student.full_name,
+                attendance_list.append(
+                    {
+                        'attendance_id':
+                            attendance.attendance_id,
 
-                    'attendance_time': (
-                        local_attendance_time.strftime(
-                            '%d %B %Y, %I:%M %p'
-                        )
-                        if local_attendance_time
-                        else ''
-                    ),
+                        'student_id':
+                            student.student_id,
 
-                    'face_verified': attendance.face_verified,
-                    'ble_verified': attendance.ble_verified,
-                    'status': attendance.status,
-                })
+                        'student_name':
+                            student.full_name,
+
+                        'attendance_time': (
+                            local_attendance_time.strftime(
+                                '%d %B %Y, %I:%M %p'
+                            )
+                            if local_attendance_time
+                            else ''
+                        ),
+
+                        'face_verified':
+                            attendance.face_verified,
+
+                        'ble_verified':
+                            attendance.ble_verified,
+
+                        'status':
+                            attendance.status,
+                    }
+                )
 
             except Student.DoesNotExist:
-                # Skip attendance records whose student
-                # record cannot be found
+
                 continue
 
         return Response(
             {
-                'session_id': session.session_id,
-                'assignment_id': assignment.assignment_id,
+                'session_id':
+                    session.session_id,
 
-                'subject_code': subject.subject_code,
-                'subject_name': subject.subject_name,
+                'assignment_id':
+                    assignment.assignment_id,
 
-                'session_status': session.status,
+                'subject_code':
+                    subject.subject_code,
 
-                'start_time': session.start_time,
-                'end_time': session.end_time,
+                'subject_name':
+                    subject.subject_name,
 
-                'total_present': len(attendance_list),
+                'session_status':
+                    session.status,
 
-                'attendance': attendance_list,
+                'start_time':
+                    session.start_time,
+
+                'end_time':
+                    session.end_time,
+
+                'total_present':
+                    len(attendance_list),
+
+                'attendance':
+                    attendance_list,
             },
             status=status.HTTP_200_OK
         )

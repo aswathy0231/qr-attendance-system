@@ -220,7 +220,22 @@
 
         .session-id {
             color: #667085;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+        }
+
+
+        /* Session countdown */
+
+        .session-countdown {
+            font-size: 18px;
+            font-weight: bold;
+            color: #175cd3;
+            margin-bottom: 15px;
+        }
+
+
+        .session-countdown.expired {
+            color: #d92d20;
         }
 
 
@@ -372,7 +387,10 @@
 
         <!-- DASHBOARD ACTIONS -->
 
-        <div class="dashboard-actions">
+        <div
+            class="dashboard-actions"
+            id="dashboard-actions"
+        >
 
             <a
                 href="/teacher/attendance-history/"
@@ -524,6 +542,18 @@
             </div>
 
 
+            <!-- SESSION COUNTDOWN -->
+
+            <p
+                id="session-countdown"
+                class="session-countdown"
+            >
+
+                Attendance ends in 10:00
+
+            </p>
+
+
             <!-- QR CODE -->
 
             <div class="qr-container">
@@ -577,9 +607,6 @@
 
         /*
          * Currently selected assignment.
-         *
-         * The first assignment is selected
-         * automatically when the page loads.
          */
 
         let selectedAssignmentId =
@@ -597,8 +624,7 @@
 
 
         /*
-         * Stores the currently active
-         * attendance session.
+         * Current attendance session.
          */
 
         let sessionId = null;
@@ -606,28 +632,44 @@
 
 
         /*
-         * QR ROTATION SETTINGS
-         *
-         * The QR code changes every 60 seconds.
+         * Session end time.
          */
 
-        const QR_ROTATION_INTERVAL = 60;
+        let sessionEndTime = null;
+
 
 
         /*
-         * Stores the remaining countdown
-         * in seconds.
+         * QR rotation interval.
+         */
+
+        const QR_ROTATION_INTERVAL = 30;
+
+
+
+        /*
+         * QR countdown.
          */
 
         let qrCountdown =
             QR_ROTATION_INTERVAL;
 
 
+
         /*
-         * Stores the countdown timer.
+         * QR timer.
          */
 
         let qrCountdownTimer = null;
+
+
+
+        /*
+         * Attendance session timer.
+         */
+
+        let sessionCountdownTimer = null;
+
 
 
         /*
@@ -636,21 +678,11 @@
 
         function selectAssignment(element) {
 
-
-            /*
-             * Get the selected assignment ID.
-             */
-
             selectedAssignmentId =
                 element.getAttribute(
                     'data-assignment-id'
                 );
 
-
-            /*
-             * Remove selected state
-             * from all assignment cards.
-             */
 
             const cards =
                 document.querySelectorAll(
@@ -667,18 +699,10 @@
             });
 
 
-            /*
-             * Highlight selected card.
-             */
-
             element.classList.add(
                 'selected'
             );
 
-
-            /*
-             * Get subject name.
-             */
 
             const subject =
                 element.querySelector(
@@ -686,19 +710,11 @@
                 ).textContent.trim();
 
 
-            /*
-             * Get class information.
-             */
-
             const classInfo =
                 element.querySelector(
                     '.class-info'
                 ).textContent.trim();
 
-
-            /*
-             * Update selection status.
-             */
 
             document.getElementById(
                 'selection-status'
@@ -718,12 +734,6 @@
 
         async function startAttendance() {
 
-
-            /*
-             * Make sure an assignment
-             * has been selected.
-             */
-
             if (selectedAssignmentId === null) {
 
                 alert(
@@ -736,7 +746,6 @@
 
             try {
 
-
                 const response =
                     await fetch(
                         '/api/attendance/sessions/create/',
@@ -744,7 +753,8 @@
                             method: 'POST',
 
                             headers: {
-                                'Content-Type': 'application/json'
+                                'Content-Type':
+                                    'application/json'
                             },
 
                             body: JSON.stringify({
@@ -764,10 +774,6 @@
                 const data =
                     await response.json();
 
-
-                /*
-                 * Check API response.
-                 */
 
                 if (!response.ok) {
 
@@ -789,6 +795,16 @@
 
 
                 /*
+                 * Save session end time.
+                 */
+
+                sessionEndTime =
+                    new Date(
+                        data.end_time
+                    );
+
+
+                /*
                  * Display session ID.
                  */
 
@@ -799,7 +815,7 @@
 
 
                 /*
-                 * Display the first QR image.
+                 * Display QR image.
                  */
 
                 document.getElementById(
@@ -809,8 +825,15 @@
 
 
                 /*
-                 * Hide assignment section.
+                 * Hide dashboard controls.
                  */
+
+                document.getElementById(
+                    'dashboard-actions'
+                ).classList.add(
+                    'hidden'
+                );
+
 
                 document.getElementById(
                     'assignment-section'
@@ -818,10 +841,6 @@
                     'hidden'
                 );
 
-
-                /*
-                 * Hide Start button.
-                 */
 
                 document.getElementById(
                     'start-section'
@@ -842,10 +861,17 @@
 
 
                 /*
-                 * Start the 60-second QR rotation.
+                 * Start QR rotation.
                  */
 
                 startQRRotation();
+
+
+                /*
+                 * Start attendance countdown.
+                 */
+
+                startSessionCountdown();
 
             }
 
@@ -865,20 +891,141 @@
 
 
         /*
-         * REFRESH QR CODE
-         *
-         * Requests a new QR token from
-         * the backend and replaces the
-         * QR image currently displayed.
+         * SESSION COUNTDOWN
          */
 
-        async function refreshQRCode() {
+        function startSessionCountdown() {
+
+            stopSessionCountdown();
+
+
+            updateSessionCountdown();
+
+
+            sessionCountdownTimer =
+                setInterval(
+                    function() {
+
+                        updateSessionCountdown();
+
+                    },
+                    1000
+                );
+
+        }
+
+
+
+        /*
+         * UPDATE SESSION COUNTDOWN
+         */
+
+        function updateSessionCountdown() {
+
+            if (sessionEndTime === null) {
+
+                return;
+
+            }
+
+
+            const now =
+                new Date();
+
+
+            const remaining =
+                sessionEndTime.getTime()
+                - now.getTime();
+
+
+            const countdownElement =
+                document.getElementById(
+                    'session-countdown'
+                );
 
 
             /*
-             * Make sure there is an
-             * active attendance session.
+             * SESSION HAS EXPIRED
              */
+
+            if (remaining <= 0) {
+
+                stopSessionCountdown();
+
+                stopQRRotation();
+
+
+                /*
+                 * Reload the dashboard.
+                 *
+                 * The backend has already marked
+                 * the session as Ended.
+                 *
+                 * Reloading removes the old QR
+                 * session screen and restores the
+                 * normal dashboard.
+                 */
+
+                window.location.reload();
+
+                return;
+
+            }
+
+
+            const totalSeconds =
+                Math.floor(
+                    remaining / 1000
+                );
+
+
+            const minutes =
+                Math.floor(
+                    totalSeconds / 60
+                );
+
+
+            const seconds =
+                totalSeconds % 60;
+
+
+            countdownElement.textContent =
+                'Attendance ends in ' +
+                String(minutes).padStart(2, '0') +
+                ':' +
+                String(seconds).padStart(2, '0');
+
+        }
+
+
+
+        /*
+         * STOP SESSION COUNTDOWN
+         */
+
+        function stopSessionCountdown() {
+
+            if (
+                sessionCountdownTimer !== null
+            ) {
+
+                clearInterval(
+                    sessionCountdownTimer
+                );
+
+                sessionCountdownTimer = null;
+
+            }
+
+        }
+
+
+
+        /*
+         * REFRESH QR CODE
+         */
+
+        async function refreshQRCode() {
 
             if (sessionId === null) {
 
@@ -889,7 +1036,6 @@
 
             try {
 
-
                 const response =
                     await fetch(
                         `/api/attendance/sessions/${sessionId}/qr/`,
@@ -897,7 +1043,8 @@
                             method: 'POST',
 
                             headers: {
-                                'Content-Type': 'application/json'
+                                'Content-Type':
+                                    'application/json'
                             }
                         }
                     );
@@ -908,38 +1055,25 @@
 
 
                 /*
-                 * If the session has expired,
-                 * stop QR rotation.
+                 * QR refresh failed.
+                 *
+                 * This normally means that
+                 * the attendance session has expired.
                  */
 
                 if (!response.ok) {
 
                     stopQRRotation();
 
+                    stopSessionCountdown();
+
 
                     /*
-                     * Hide the countdown because
-                     * the session is no longer active.
+                     * Reload the dashboard instead
+                     * of showing an error popup.
                      */
 
-                    const countdownElement =
-                        document.getElementById(
-                            'qr-countdown'
-                        );
-
-
-                    if (countdownElement) {
-
-                        countdownElement.textContent =
-                            'Attendance session expired.';
-
-                    }
-
-
-                    alert(
-                        data.error ||
-                        'Attendance session has expired.'
-                    );
+                    window.location.reload();
 
                     return;
 
@@ -947,8 +1081,7 @@
 
 
                 /*
-                 * Replace the old QR image
-                 * with the new QR image.
+                 * Replace QR image.
                  */
 
                 document.getElementById(
@@ -958,7 +1091,7 @@
 
 
                 /*
-                 * Reset the countdown.
+                 * Reset QR countdown.
                  */
 
                 qrCountdown =
@@ -989,7 +1122,6 @@
 
         function updateQRCountdown() {
 
-
             const countdownElement =
                 document.getElementById(
                     'qr-countdown'
@@ -1013,18 +1145,8 @@
 
         function startQRRotation() {
 
-
-            /*
-             * Stop any existing timer first.
-             */
-
             stopQRRotation();
 
-
-            /*
-             * Reset countdown.
-
-             */
 
             qrCountdown =
                 QR_ROTATION_INTERVAL;
@@ -1033,25 +1155,15 @@
             updateQRCountdown();
 
 
-            /*
-             * Run the countdown every second.
-             */
-
             qrCountdownTimer =
                 setInterval(
                     function() {
-
 
                         qrCountdown--;
 
 
                         updateQRCountdown();
 
-
-                        /*
-                         * When countdown reaches zero,
-                         * request a new QR code.
-                         */
 
                         if (qrCountdown <= 0) {
 
@@ -1073,8 +1185,9 @@
 
         function stopQRRotation() {
 
-
-            if (qrCountdownTimer !== null) {
+            if (
+                qrCountdownTimer !== null
+            ) {
 
                 clearInterval(
                     qrCountdownTimer
@@ -1094,12 +1207,6 @@
 
         async function endAttendance() {
 
-
-            /*
-             * Make sure there is
-             * an active session.
-             */
-
             if (sessionId === null) {
 
                 return;
@@ -1107,15 +1214,12 @@
             }
 
 
-            /*
-             * Stop QR rotation immediately.
-             */
-
             stopQRRotation();
+
+            stopSessionCountdown();
 
 
             try {
-
 
                 const response =
                     await fetch(
@@ -1124,7 +1228,8 @@
                             method: 'POST',
 
                             headers: {
-                                'Content-Type': 'application/json'
+                                'Content-Type':
+                                    'application/json'
                             },
 
                             body: JSON.stringify({
@@ -1142,23 +1247,14 @@
 
 
                 /*
-                 * Check API response.
+                 * If the session has already
+                 * expired, simply reload the
+                 * dashboard.
                  */
 
                 if (!response.ok) {
 
-                    /*
-                     * Restart QR rotation if the
-                     * session was not successfully ended.
-                     */
-
-                    startQRRotation();
-
-
-                    alert(
-                        data.error ||
-                        'Failed to end attendance.'
-                    );
+                    window.location.reload();
 
                     return;
 
@@ -1167,7 +1263,7 @@
 
                 /*
                  * Open attendance management
-                 * for the session that was just ended.
+                 * for the session just ended.
                  */
 
                 window.location.href =
@@ -1177,15 +1273,6 @@
 
 
             catch (error) {
-
-
-                /*
-                 * Restart QR rotation because
-                 * the session may still be active.
-                 */
-
-                startQRRotation();
-
 
                 alert(
                     'Could not connect to the server.'
