@@ -5,6 +5,7 @@ import '../models/student_model.dart';
 import 'scanner_screen.dart';
 import 'attendance_history_screen.dart';
 import 'profile_screen.dart';
+import 'device_registration_screen.dart';
 import 'login_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -276,7 +277,53 @@ class DashboardScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              // ==================================================
+              // DEVICE REGISTRATION
+              // ==================================================
 
+              Transform.translate(
+                offset: const Offset(0, -15),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                  ),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 55,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                DeviceRegistrationScreen(
+                              student: student,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(
+                        Icons.phonelink_lock,
+                      ),
+                      label: const Text(
+                        'Register This Device',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF175CD3),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               // ==================================================
               // NOTICE
               // ==================================================

@@ -64,3 +64,33 @@ class Attendance(models.Model):
 
     def __str__(self):
         return f"Attendance {self.attendance_id}"
+
+class DeviceRegistration(models.Model):
+
+    device_registration_id = models.AutoField(
+        primary_key=True
+    )
+
+    student_id = models.IntegerField()
+
+    device_uuid = models.CharField(
+        max_length=255
+    )
+
+    device_name = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True
+    )
+
+    registered_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+
+    class Meta:
+        managed = False
+        db_table = 'device_registrations'
+
+    def __str__(self):
+        return f"Device for Student {self.student_id}"

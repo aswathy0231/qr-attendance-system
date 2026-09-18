@@ -162,4 +162,45 @@ class ApiService {
       );
     }
   }
+
+  // ============================================================
+  // DEVICE REGISTRATION
+  // ============================================================
+
+  Future<Map<String, dynamic>> registerDevice({
+    required int studentId,
+    required String deviceUuid,
+    required String deviceName,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse(
+          '$baseUrl/api/attendance/device/register/',
+        ),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'student_id': studentId,
+          'device_uuid': deviceUuid,
+          'device_name': deviceName,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 201 ||
+          response.statusCode == 200) {
+        return data;
+      }
+
+      throw Exception(
+        data['error'] ?? 'Device registration failed.',
+      );
+    } catch (e) {
+      throw Exception(
+        'Could not register device.',
+      );
+    }
+  }
 }

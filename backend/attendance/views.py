@@ -10,7 +10,7 @@ from rest_framework import status
 import qrcode
 from io import BytesIO
 
-from .models import AttendanceSession, Attendance
+from .models import AttendanceSession, Attendance, DeviceRegistration
 from .serializers import AttendanceSessionSerializer
 
 from admins.models import SubjectAssignment
@@ -683,4 +683,133 @@ class TeacherAttendanceView(APIView):
                     attendance_list,
             },
             status=status.HTTP_200_OK
+        )
+
+# ============================================================
+# DEVICE REGISTRATION
+# ============================================================
+
+class DeviceRegistrationView(APIView):
+
+    def post(self, request):
+
+        student_id = request.data.get('student_id')
+        device_uuid = request.data.get('device_uuid')
+        device_name = request.data.get('device_name')
+
+        # Check required data
+        if not student_id or not device_uuid:
+
+            return Response(
+                {
+                    'error': (
+                        'student_id and device_uuid '
+                        'are required'
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validate student ID
+        try:
+
+            student_id = int(student_id)
+
+        except (ValueError, TypeError):
+
+            return Response(
+                {
+                    'error': 'student_id must be a number'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Check whether the student exists
+        try:
+
+            Student.objects.get(
+                student_id=student_id
+            )
+
+        except Student.DoesNotExist:
+
+            return Response(
+                {
+                    'error': 'Student not found'
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Check whether this student already has a device
+        existing_registration = (
+            DeviceRegistration.objects.filter(
+                student_id=student_id
+            ).first()
+        )
+
+        if existing_registration:
+
+            # Same device is already registered
+            if (
+                existing_registration.device_uuid
+                == device_uuid
+            ):
+
+                return Response(
+                    {
+                        'message': (
+                            'Device is already registered'
+                        ),
+                        'device_registration_id':
+                            existing_registration
+                            .device_registration_id,
+                        'student_id':
+                            existing_registration.student_id,
+                        'device_uuid':
+                            existing_registration.device_uuid,
+                        'device_name':
+                            existing_registration.device_name,
+                        'registered_at':
+                            existing_registration.registered_at,
+                    },
+                    status=status.HTTP_200_OK
+                )
+
+            # Another device is already registered
+            return Response(
+                {
+                    'error': (
+                        'This student already has a '
+                        'registered device'
+                    )
+                },
+                status=status.HTTP_409_CONFLICT
+            )
+
+        # Register the new device
+        device_registration = DeviceRegistration.objects.create(
+            student_id=student_id,
+            device_uuid=device_uuid,
+            device_name=device_name,
+            registered_at=timezone.now()
+        )
+
+        return Response(
+            {
+                'message': (
+                    'Device registered successfully'
+                ),
+                'device_registration_id':
+                    device_registration
+                    .device_registration_id,
+                'student_id':
+                    device_registration.student_id,
+                'device_uuid':
+                    device_registration.device_uuid,
+                'device_name':
+                    device_registration.device_name,
+                'registered_at':
+                    device_registration.registered_at,
+            },
+            status=status.HTTP_201_CREATED
         )
