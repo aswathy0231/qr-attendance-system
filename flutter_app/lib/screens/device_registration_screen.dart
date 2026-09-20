@@ -3,13 +3,16 @@ import 'package:flutter/material.dart';
 import '../models/student_model.dart';
 import '../services/api_service.dart';
 import '../services/device_registration_service.dart';
+import 'change_password_screen.dart';
 
 class DeviceRegistrationScreen extends StatefulWidget {
   final StudentModel student;
+  final String accessToken;
 
   const DeviceRegistrationScreen({
     super.key,
     required this.student,
+    required this.accessToken,
   });
 
   @override
@@ -17,10 +20,8 @@ class DeviceRegistrationScreen extends StatefulWidget {
       _DeviceRegistrationScreenState();
 }
 
-class _DeviceRegistrationScreenState
-    extends State<DeviceRegistrationScreen> {
-  final DeviceRegistrationService _deviceService =
-      DeviceRegistrationService();
+class _DeviceRegistrationScreenState extends State<DeviceRegistrationScreen> {
+  final DeviceRegistrationService _deviceService = DeviceRegistrationService();
 
   final ApiService _apiService = ApiService();
 
@@ -45,6 +46,7 @@ class _DeviceRegistrationScreenState
   Future<void> _loadDeviceInformation() async {
     try {
       final uuid = await _deviceService.getDeviceUuid();
+
       final name = await _deviceService.getDeviceName();
 
       if (!mounted) return;
@@ -70,10 +72,7 @@ class _DeviceRegistrationScreenState
 
   Future<void> _registerDevice() async {
     if (_deviceUuid.isEmpty) {
-      _showMessage(
-        'Device information is not available.',
-        isError: true,
-      );
+      _showMessage('Device information is not available.', isError: true);
       return;
     }
 
@@ -83,9 +82,9 @@ class _DeviceRegistrationScreenState
 
     try {
       final result = await _apiService.registerDevice(
-        studentId: widget.student.id,
         deviceUuid: _deviceUuid,
         deviceName: _deviceName,
+        accessToken: widget.accessToken,
       );
 
       if (!mounted) return;
@@ -95,8 +94,7 @@ class _DeviceRegistrationScreenState
       });
 
       _showSuccessDialog(
-        result['message'] ??
-            'Device registered successfully.',
+        result['message'] ?? 'Device registered successfully.',
       );
     } catch (e) {
       if (!mounted) return;
@@ -105,13 +103,7 @@ class _DeviceRegistrationScreenState
         _isRegistering = false;
       });
 
-      _showMessage(
-        e.toString().replaceFirst(
-              'Exception: ',
-              '',
-            ),
-        isError: true,
-      );
+      _showMessage(e.toString().replaceFirst('Exception: ', ''), isError: true);
     }
   }
 
@@ -123,40 +115,41 @@ class _DeviceRegistrationScreenState
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
           ),
           title: const Row(
             children: [
-              Icon(
-                Icons.check_circle,
-                color: Colors.green,
-              ),
+              Icon(Icons.check_circle, color: Colors.green),
               SizedBox(width: 10),
               Text(
                 'Success',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ],
           ),
-          content: Text(
-            message,
-            style: const TextStyle(
-              fontSize: 14,
-            ),
-          ),
+          content: Text(message, style: const TextStyle(fontSize: 14)),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context);
+                // Close success dialog
+                Navigator.pop(dialogContext);
+
+                // Go to change password
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ChangePasswordScreen(
+                      student: widget.student,
+                      accessToken: widget.accessToken,
+                    ),
+                  ),
+                );
               },
               child: const Text(
-                'OK',
+                'Continue',
                 style: TextStyle(
                   color: Color(0xFF175CD3),
                   fontWeight: FontWeight.bold,
@@ -173,16 +166,12 @@ class _DeviceRegistrationScreenState
   // MESSAGE
   // ============================================================
 
-  void _showMessage(
-    String message, {
-    bool isError = false,
-  }) {
+  void _showMessage(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         duration: const Duration(seconds: 3),
-        backgroundColor:
-            isError ? Colors.red : Colors.green,
+        backgroundColor: isError ? Colors.red : Colors.green,
       ),
     );
   }
@@ -199,16 +188,12 @@ class _DeviceRegistrationScreenState
       // ========================================================
       // APP BAR
       // ========================================================
-
       appBar: AppBar(
         backgroundColor: const Color(0xFF175CD3),
         foregroundColor: Colors.white,
         title: const Text(
           'Device Registration',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
       ),
@@ -216,12 +201,9 @@ class _DeviceRegistrationScreenState
       // ========================================================
       // BODY
       // ========================================================
-
       body: _isLoading
           ? const Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFF175CD3),
-              ),
+              child: CircularProgressIndicator(color: Color(0xFF175CD3)),
             )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(18),
@@ -250,7 +232,6 @@ class _DeviceRegistrationScreenState
                   // ==================================================
                   // TITLE
                   // ==================================================
-
                   const Text(
                     'Register Your Device',
                     textAlign: TextAlign.center,
@@ -267,10 +248,7 @@ class _DeviceRegistrationScreenState
                     'This device will be linked to your student account '
                     'for secure attendance.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF667085),
-                    ),
+                    style: TextStyle(fontSize: 13, color: Color(0xFF667085)),
                   ),
 
                   const SizedBox(height: 25),
@@ -278,29 +256,20 @@ class _DeviceRegistrationScreenState
                   // ==================================================
                   // STUDENT INFORMATION
                   // ==================================================
-
                   _sectionTitle('Student Information'),
 
                   const SizedBox(height: 8),
 
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 15,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(15),
                     ),
                     child: Column(
                       children: [
-                        _infoRow(
-                          'Student',
-                          widget.student.name,
-                        ),
-                        _infoRow(
-                          'Student ID',
-                          widget.student.registerNumber,
-                        ),
+                        _infoRow('Student', widget.student.name),
+                        _infoRow('Student ID', widget.student.registerNumber),
                       ],
                     ),
                   ),
@@ -310,29 +279,20 @@ class _DeviceRegistrationScreenState
                   // ==================================================
                   // DEVICE INFORMATION
                   // ==================================================
-
                   _sectionTitle('Device Information'),
 
                   const SizedBox(height: 8),
 
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 15,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(15),
                     ),
                     child: Column(
                       children: [
-                        _infoRow(
-                          'Device',
-                          _deviceName,
-                        ),
-                        _infoRow(
-                          'Device ID',
-                          _deviceUuid,
-                        ),
+                        _infoRow('Device', _deviceName),
+                        _infoRow('Device ID', _deviceUuid),
                       ],
                     ),
                   ),
@@ -342,20 +302,16 @@ class _DeviceRegistrationScreenState
                   // ==================================================
                   // INFORMATION MESSAGE
                   // ==================================================
-
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(15),
                     decoration: BoxDecoration(
                       color: const Color(0xFFEFF6FF),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: const Color(0xFFDDE8FF),
-                      ),
+                      border: Border.all(color: const Color(0xFFDDE8FF)),
                     ),
                     child: const Row(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Icon(
                           Icons.info_outline,
@@ -382,45 +338,33 @@ class _DeviceRegistrationScreenState
                   // ==================================================
                   // REGISTER BUTTON
                   // ==================================================
-
                   SizedBox(
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton.icon(
-                      onPressed:
-                          _isRegistering
-                              ? null
-                              : _registerDevice,
+                      onPressed: _isRegistering ? null : _registerDevice,
                       icon: _isRegistering
                           ? const SizedBox(
                               width: 20,
                               height: 20,
-                              child:
-                                  CircularProgressIndicator(
+                              child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 color: Colors.white,
                               ),
                             )
-                          : const Icon(
-                              Icons.phonelink_lock,
-                            ),
+                          : const Icon(Icons.phonelink_lock),
                       label: Text(
                         _isRegistering
                             ? 'Registering...'
                             : 'Register This Device',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            const Color(0xFF175CD3),
+                        backgroundColor: const Color(0xFF175CD3),
                         foregroundColor: Colors.white,
-                        disabledBackgroundColor:
-                            const Color(0xFF98A2B3),
+                        disabledBackgroundColor: const Color(0xFF98A2B3),
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         elevation: 0,
                       ),
@@ -432,10 +376,7 @@ class _DeviceRegistrationScreenState
                     Text(
                       _errorMessage!,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.red,
-                      ),
+                      style: const TextStyle(fontSize: 12, color: Colors.red),
                     ),
                   ],
 
@@ -468,46 +409,28 @@ class _DeviceRegistrationScreenState
   // INFORMATION ROW
   // ============================================================
 
-  Widget _infoRow(
-    String title,
-    String value,
-  ) {
+  Widget _infoRow(String title, String value) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        vertical: 15,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 15),
       decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: Colors.grey.shade200,
-          ),
-        ),
+        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
       ),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             flex: 4,
             child: Text(
               title,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF667085),
-              ),
+              style: const TextStyle(fontSize: 12, color: Color(0xFF667085)),
             ),
           ),
           Expanded(
             flex: 6,
             child: Text(
-              value.isEmpty
-                  ? 'Not available'
-                  : value,
+              value.isEmpty ? 'Not available' : value,
               textAlign: TextAlign.right,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
             ),
           ),
         ],

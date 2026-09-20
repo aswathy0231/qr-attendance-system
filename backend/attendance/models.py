@@ -65,6 +65,27 @@ class Attendance(models.Model):
     def __str__(self):
         return f"Attendance {self.attendance_id}"
 
+
+class FaceRegistration(models.Model):
+
+    face_id = models.AutoField(primary_key=True)
+    student_id = models.IntegerField()
+
+    face_data = models.TextField(
+        null=True,
+        blank=True
+    )
+
+    registered_at = models.DateTimeField()
+
+    class Meta:
+        managed = False
+        db_table = 'face_registrations'
+
+    def __str__(self):
+        return f"Face Registration {self.face_id}"
+
+
 class DeviceRegistration(models.Model):
 
     device_registration_id = models.AutoField(

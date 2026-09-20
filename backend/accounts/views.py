@@ -1,4 +1,7 @@
-from django.contrib.auth.hashers import check_password
+from django.contrib.auth.hashers import (
+    check_password,
+    make_password
+)
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -60,7 +63,9 @@ class LoginView(APIView):
 
         if user.role.lower() == 'student':
             try:
-                student = Student.objects.get(user_id=user.user_id)
+                student = Student.objects.get(
+                    user_id=user.user_id
+                )
                 student_id = student.student_id
 
             except Student.DoesNotExist:
@@ -71,7 +76,9 @@ class LoginView(APIView):
 
         elif user.role.lower() == 'teacher':
             try:
-                teacher = Teacher.objects.get(user_id=user.user_id)
+                teacher = Teacher.objects.get(
+                    user_id=user.user_id
+                )
                 teacher_id = teacher.teacher_id
 
             except Teacher.DoesNotExist:
@@ -96,6 +103,7 @@ class LoginView(APIView):
             'teacher_id': teacher_id,
             'username': user.username,
             'role': user.role,
+            'first_login': user.first_login,
             'access': str(access_token),
             'refresh': str(refresh),
         })
@@ -115,7 +123,9 @@ class ProfileView(APIView):
 
         if user.role.lower() == 'student':
             try:
-                student = Student.objects.get(user_id=user.user_id)
+                student = Student.objects.get(
+                    user_id=user.user_id
+                )
                 student_id = student.student_id
 
             except Student.DoesNotExist:
@@ -131,3 +141,78 @@ class ProfileView(APIView):
             'username': user.username,
             'role': user.role
         })
+
+
+class ChangePasswordView(APIView):
+
+    # Only students can change password
+    permission_classes = [IsStudent]
+
+    def post(self, request):
+
+        # Get authenticated user from JWT
+        user_id = request.auth.get('user_id')
+
+        if not user_id:
+            return Response(
+                {'error': 'Invalid authentication token'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        # Find user
+        try:
+            user = User.objects.get(
+                user_id=user_id
+            )
+
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'User not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Get new password
+        new_password = request.data.get(
+            'new_password'
+        )
+
+        if not new_password:
+            return Response(
+                {'error': 'New password is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Basic password length validation
+        if len(new_password) < 6:
+            return Response(
+                {
+                    'error':
+                        'Password must be at least 6 characters long'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Hash and save new password
+        user.password = make_password(
+            new_password
+        )
+
+        # First-login setup is now complete
+        user.first_login = 0
+
+        user.save(
+            update_fields=[
+                'password',
+                'first_login'
+            ]
+        )
+
+        return Response(
+            {
+                'message':
+                    'Password changed successfully',
+                'first_login':
+                    user.first_login
+            },
+            status=status.HTTP_200_OK
+        )

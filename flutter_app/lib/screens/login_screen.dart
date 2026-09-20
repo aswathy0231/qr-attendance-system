@@ -7,6 +7,7 @@ import '../models/student_model.dart';
 import '../services/api_service.dart';
 
 import 'dashboard_screen.dart';
+import 'face_registration_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -39,6 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> studentLogin() async {
     final username = studentIdController.text.trim();
+
     final password = passwordController.text;
 
     // Empty field validation
@@ -59,13 +61,8 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/api/login/'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'username': username,
-          'password': password,
-        }),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'username': username, 'password': password}),
       );
 
       if (!mounted) return;
@@ -75,28 +72,38 @@ class _LoginScreenState extends State<LoginScreen> {
       print('LOGIN RESPONSE: $data');
 
       if (response.statusCode == 200) {
-        // Make sure this login belongs to a student.
+        // ========================================================
+        // CHECK USER ROLE
+        // ========================================================
+
         if (data['role'] != 'student') {
           setState(() {
             isLoading = false;
           });
 
-          _showError(
-            'This account is not a student account.',
-          );
+          _showError('This account is not a student account.');
 
           return;
         }
 
-        // Get the logged-in student's actual student_id.
+        // ========================================================
+        // GET STUDENT ID
+        // ========================================================
+
         final int studentId = data['student_id'];
 
         print('Student ID: $studentId');
 
-        // Create API service
+        // ========================================================
+        // CREATE API SERVICE
+        // ========================================================
+
         final apiService = ApiService();
 
-        // Fetch the student's actual details from the database.
+        // ========================================================
+        // GET STUDENT DETAILS
+        // ========================================================
+
         final StudentModel student = await apiService.getStudentById(
           studentId: studentId,
         );
@@ -104,30 +111,62 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!mounted) return;
 
         print('Student Name: ${student.name}');
+
         print('Student Email: ${student.email}');
-        print('Register Number: ${student.registerNumber}');
+
+        print(
+          'Register Number: '
+          '${student.registerNumber}',
+        );
 
         setState(() {
           isLoading = false;
         });
 
-        // Open dashboard with the actual student details.
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => DashboardScreen(
-              student: student,
+        // ========================================================
+        // FIRST LOGIN CHECK
+        // ========================================================
+
+        final int? firstLogin = data['first_login'];
+
+        if (firstLogin == 1) {
+          // ------------------------------------------------------
+          // NEW STUDENT
+          // Start face registration.
+          // ------------------------------------------------------
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => FaceRegistrationScreen(
+                student: student,
+                accessToken: data['access'],
+              ),
             ),
-          ),
-        );
+          );
+        } else {
+          // ------------------------------------------------------
+          // EXISTING STUDENT
+          // Open dashboard.
+          //
+          // This handles:
+          // first_login = 0
+          // first_login = NULL
+          // ------------------------------------------------------
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DashboardScreen(student: student),
+            ),
+          );
+        }
       } else {
         setState(() {
           isLoading = false;
         });
 
-        _showError(
-          data['error'] ?? 'Invalid username or password.',
-        );
+        _showError(data['error'] ?? 'Invalid username or password.');
       }
     } catch (e) {
       if (!mounted) return;
@@ -138,9 +177,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       print('LOGIN ERROR: $e');
 
-      _showError(
-        'Could not connect to the server.',
-      );
+      _showError('Could not connect to the server.');
     }
   }
 
@@ -152,10 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
@@ -179,10 +213,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 height: 170,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      Color(0xFF1558D6),
-                      Color(0xFF2872E8),
-                    ],
+                    colors: [Color(0xFF1558D6), Color(0xFF2872E8)],
                   ),
                   borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(45),
@@ -211,22 +242,16 @@ class _LoginScreenState extends State<LoginScreen> {
               // ==================================================
               // TITLE
               // ==================================================
-
               const Text(
                 'Student Login',
-                style: TextStyle(
-                  fontSize: 23,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 5),
 
               const Text(
                 'Sign in to continue',
-                style: TextStyle(
-                  color: Color(0xFF667085),
-                ),
+                style: TextStyle(color: Color(0xFF667085)),
               ),
 
               const SizedBox(height: 30),
@@ -234,11 +259,8 @@ class _LoginScreenState extends State<LoginScreen> {
               // ==================================================
               // LOGIN FORM
               // ==================================================
-
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 22,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 22),
                 child: Column(
                   children: [
                     // ==================================================
@@ -249,9 +271,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       controller: studentIdController,
                       enabled: !isLoading,
                       decoration: InputDecoration(
-                        prefixIcon: const Icon(
-                          Icons.person,
-                        ),
+                        prefixIcon: const Icon(Icons.person),
                         hintText: 'Student ID',
                         filled: true,
                         fillColor: Colors.white,
@@ -266,15 +286,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     // ==================================================
                     // PASSWORD
                     // ==================================================
-
                     TextField(
                       controller: passwordController,
                       enabled: !isLoading,
                       obscureText: obscurePassword,
                       decoration: InputDecoration(
-                        prefixIcon: const Icon(
-                          Icons.lock,
-                        ),
+                        prefixIcon: const Icon(Icons.lock),
                         suffixIcon: IconButton(
                           icon: Icon(
                             obscurePassword
@@ -299,7 +316,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     // ==================================================
                     // FORGOT PASSWORD
                     // ==================================================
-
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
@@ -312,9 +328,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               },
                         child: const Text(
                           'Forgot Password?',
-                          style: TextStyle(
-                            color: Color(0xFF175CD3),
-                          ),
+                          style: TextStyle(color: Color(0xFF175CD3)),
                         ),
                       ),
                     ),
@@ -324,7 +338,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     // ==================================================
                     // LOGIN BUTTON
                     // ==================================================
-
                     SizedBox(
                       width: double.infinity,
                       height: 52,
@@ -361,14 +374,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     // ==================================================
                     // ACCOUNT INFORMATION
                     // ==================================================
-
                     const Text(
                       "Don't have an account? Contact Admin",
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF667085),
-                      ),
+                      style: TextStyle(fontSize: 13, color: Color(0xFF667085)),
                     ),
 
                     const SizedBox(height: 20),

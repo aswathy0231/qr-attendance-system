@@ -1,6 +1,11 @@
 from django.urls import path
 
-from .views import LoginView, ProfileView
+from .views import (
+    LoginView,
+    ProfileView,
+    ChangePasswordView
+)
+
 from .web_views import teacher_login
 
 
@@ -19,10 +24,17 @@ urlpatterns = [
         name='profile'
     ),
 
+    # Student change password API
+    path(
+        'change-password/',
+        ChangePasswordView.as_view(),
+        name='change-password'
+    ),
+
     # Teacher web login
     path(
         'teacher-login/',
         teacher_login,
         name='teacher-login'
     ),
-]
+]   

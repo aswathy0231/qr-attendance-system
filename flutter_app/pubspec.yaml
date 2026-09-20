@@ -39,6 +39,7 @@ dependencies:
   device_info_plus: ^13.2.0
   shared_preferences: ^2.5.5
   uuid: ^4.6.0
+  camera: ^0.12.1
 
 dev_dependencies:
   flutter_test:

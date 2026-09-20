@@ -1,8 +1,14 @@
 import base64
 import secrets
+import json
+import os
+import subprocess
+import tempfile
+
 from datetime import timedelta
 
 from django.utils import timezone
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -10,13 +16,21 @@ from rest_framework import status
 import qrcode
 from io import BytesIO
 
-from .models import AttendanceSession, Attendance, DeviceRegistration
+from .models import (
+    AttendanceSession,
+    Attendance,
+    FaceRegistration,
+    DeviceRegistration
+)
+
 from .serializers import AttendanceSessionSerializer
 
 from admins.models import SubjectAssignment
 from subjects.models import Subject
 from teachers.models import Teacher
 from students.models import Student
+
+from accounts.permissions import IsStudent
 
 
 # ============================================================
@@ -685,84 +699,382 @@ class TeacherAttendanceView(APIView):
             status=status.HTTP_200_OK
         )
 
+
 # ============================================================
-# DEVICE REGISTRATION
+# FACE REGISTRATION
 # ============================================================
 
-class DeviceRegistrationView(APIView):
+class FaceRegistrationView(APIView):
+
+    permission_classes = [IsStudent]
 
     def post(self, request):
 
-        student_id = request.data.get('student_id')
-        device_uuid = request.data.get('device_uuid')
-        device_name = request.data.get('device_name')
+        # ----------------------------------------------------
+        # Get the authenticated user's ID from JWT
+        # ----------------------------------------------------
 
-        # Check required data
-        if not student_id or not device_uuid:
+        user_id = request.auth.get('user_id')
 
-            return Response(
-                {
-                    'error': (
-                        'student_id and device_uuid '
-                        'are required'
-                    )
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # Validate student ID
-        try:
-
-            student_id = int(student_id)
-
-        except (ValueError, TypeError):
+        if not user_id:
 
             return Response(
                 {
-                    'error': 'student_id must be a number'
+                    'error': 'User information not found'
                 },
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_401_UNAUTHORIZED
             )
 
-        # Check whether the student exists
+        # ----------------------------------------------------
+        # Find the student linked to this user
+        # ----------------------------------------------------
+
         try:
 
-            Student.objects.get(
-                student_id=student_id
+            student = Student.objects.get(
+                user_id=user_id
             )
 
         except Student.DoesNotExist:
 
             return Response(
                 {
-                    'error': 'Student not found'
+                    'error': 'Student record not found'
                 },
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Check whether this student already has a device
+        # ----------------------------------------------------
+        # Check whether a face is already registered
+        # ----------------------------------------------------
+
+        if FaceRegistration.objects.filter(
+            student_id=student.student_id
+        ).exists():
+
+            return Response(
+                {
+                    'error': 'Face is already registered'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ----------------------------------------------------
+        # Get uploaded image
+        # ----------------------------------------------------
+
+        image = request.FILES.get('image')
+
+        if not image:
+
+            return Response(
+                {
+                    'error': 'Face image is required'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ----------------------------------------------------
+        # Basic image validation
+        # ----------------------------------------------------
+
+        if image.size > 5 * 1024 * 1024:
+
+            return Response(
+                {
+                    'error': (
+                        'Image size must be less than 5 MB'
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        allowed_types = [
+            'image/jpeg',
+            'image/png'
+        ]
+
+        if image.content_type not in allowed_types:
+
+            return Response(
+                {
+                    'error': (
+                        'Only JPEG and PNG images are allowed'
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ----------------------------------------------------
+        # Locate face_env Python
+        # ----------------------------------------------------
+
+        backend_directory = os.path.dirname(
+            os.path.dirname(
+                os.path.abspath(__file__)
+            )
+        )
+
+        face_python = os.path.join(
+            backend_directory,
+            'face_env',
+            'Scripts',
+            'python.exe'
+        )
+
+        face_encoder_script = os.path.join(
+            backend_directory,
+            'attendance',
+            'face_encoder.py'
+        )
+
+        # ----------------------------------------------------
+        # Check face environment
+        # ----------------------------------------------------
+
+        if not os.path.exists(face_python):
+
+            return Response(
+                {
+                    'error': (
+                        'Face recognition environment '
+                        'was not found'
+                    )
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        if not os.path.exists(face_encoder_script):
+
+            return Response(
+                {
+                    'error': (
+                        'Face encoder script was not found'
+                    )
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        temporary_image_path = None
+
+        try:
+
+            # ------------------------------------------------
+            # Save uploaded image temporarily
+            # ------------------------------------------------
+
+            temporary_file = tempfile.NamedTemporaryFile(
+                delete=False,
+                suffix='.jpg'
+            )
+
+            temporary_image_path = temporary_file.name
+
+            for chunk in image.chunks():
+
+                temporary_file.write(chunk)
+
+            temporary_file.close()
+
+            # ------------------------------------------------
+            # Run face encoder
+            # ------------------------------------------------
+
+            result = subprocess.run(
+                [
+                    face_python,
+                    face_encoder_script,
+                    temporary_image_path
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True,
+                timeout=30
+            )
+
+            # ------------------------------------------------
+            # Check face encoder process
+            # ------------------------------------------------
+
+            if result.returncode != 0:
+
+                return Response(
+                    {
+                        'error': (
+                            'Face processing failed'
+                        )
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+            output = result.stdout.strip()
+
+            if not output:
+
+                return Response(
+                    {
+                        'error': (
+                            'No response from face '
+                            'recognition service'
+                        )
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+            # ------------------------------------------------
+            # Convert JSON result
+            # ------------------------------------------------
+
+            try:
+
+                face_result = json.loads(output)
+
+            except json.JSONDecodeError:
+
+                return Response(
+                    {
+                        'error': (
+                            'Invalid response from face '
+                            'recognition service'
+                        )
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+            # ------------------------------------------------
+            # Check face processing result
+            # ------------------------------------------------
+
+            if not face_result.get('success'):
+
+                return Response(
+                    {
+                        'error': face_result.get(
+                            'error',
+                            'Face could not be processed'
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            encoding = face_result.get('encoding')
+
+            if not encoding or len(encoding) != 128:
+
+                return Response(
+                    {
+                        'error': (
+                            'Invalid face encoding'
+                        )
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+            # ------------------------------------------------
+            # Store face encoding
+            # ------------------------------------------------
+
+            face_registration = FaceRegistration.objects.create(
+                student_id=student.student_id,
+                face_data=json.dumps(encoding),
+                registered_at=timezone.now()
+            )
+
+            # ------------------------------------------------
+            # Successful registration
+            # ------------------------------------------------
+
+            return Response(
+                {
+                    'message': (
+                        'Face registered successfully'
+                    ),
+                    'face_id':
+                        face_registration.face_id,
+                    'student_id':
+                        student.student_id,
+                },
+                status=status.HTTP_201_CREATED
+            )
+
+        except subprocess.TimeoutExpired:
+
+            return Response(
+                {
+                    'error': (
+                        'Face processing timed out'
+                    )
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        except Exception:
+
+            return Response(
+                {
+                    'error': (
+                        'An error occurred during '
+                        'face registration'
+                    )
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        finally:
+
+            # ------------------------------------------------
+            # Always remove temporary image
+            # ------------------------------------------------
+
+            if (
+                temporary_image_path
+                and os.path.exists(temporary_image_path)
+            ):
+
+                try:
+                    os.remove(temporary_image_path)
+                except OSError:
+                    pass
+                
+class DeviceRegistrationView(APIView):
+
+    permission_classes = [IsStudent]
+
+    def post(self, request):
+
+        user_id = request.auth.get('user_id')
+
+        try:
+            student = Student.objects.get(user_id=user_id)
+        except Student.DoesNotExist:
+            return Response(
+                {'error': 'Student not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        device_uuid = request.data.get('device_uuid')
+        device_name = request.data.get('device_name')
+
+        if not device_uuid:
+            return Response(
+                {'error': 'device_uuid is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         existing_registration = (
             DeviceRegistration.objects.filter(
-                student_id=student_id
+                student_id=student.student_id
             ).first()
         )
 
         if existing_registration:
 
-            # Same device is already registered
-            if (
-                existing_registration.device_uuid
-                == device_uuid
-            ):
-
+            if existing_registration.device_uuid == device_uuid:
                 return Response(
                     {
-                        'message': (
-                            'Device is already registered'
-                        ),
+                        'message': 'Device is already registered',
                         'device_registration_id':
-                            existing_registration
-                            .device_registration_id,
+                            existing_registration.device_registration_id,
                         'student_id':
                             existing_registration.student_id,
                         'device_uuid':
@@ -775,20 +1087,13 @@ class DeviceRegistrationView(APIView):
                     status=status.HTTP_200_OK
                 )
 
-            # Another device is already registered
             return Response(
-                {
-                    'error': (
-                        'This student already has a '
-                        'registered device'
-                    )
-                },
+                {'error': 'This student already has a registered device'},
                 status=status.HTTP_409_CONFLICT
             )
 
-        # Register the new device
         device_registration = DeviceRegistration.objects.create(
-            student_id=student_id,
+            student_id=student.student_id,
             device_uuid=device_uuid,
             device_name=device_name,
             registered_at=timezone.now()
@@ -796,12 +1101,9 @@ class DeviceRegistrationView(APIView):
 
         return Response(
             {
-                'message': (
-                    'Device registered successfully'
-                ),
+                'message': 'Device registered successfully',
                 'device_registration_id':
-                    device_registration
-                    .device_registration_id,
+                    device_registration.device_registration_id,
                 'student_id':
                     device_registration.student_id,
                 'device_uuid':
@@ -813,3 +1115,4 @@ class DeviceRegistrationView(APIView):
             },
             status=status.HTTP_201_CREATED
         )
+        
