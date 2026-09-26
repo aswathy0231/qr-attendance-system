@@ -26,7 +26,26 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
 
   bool _isCameraReady = false;
   bool _isCapturing = false;
+  bool _isRegistering = false;
+
   String? _errorMessage;
+
+  // ============================================================
+  // FACE IMAGES
+  // ============================================================
+
+  File? _frontImage;
+  File? _leftImage;
+  File? _rightImage;
+
+  // ============================================================
+  // CURRENT STEP
+  // 0 = FRONT
+  // 1 = LEFT
+  // 2 = RIGHT
+  // ============================================================
+
+  int _currentStep = 0;
 
   @override
   void initState() {
@@ -88,13 +107,14 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
   }
 
   // ============================================================
-  // CAPTURE FACE
+  // CAPTURE CURRENT FACE
   // ============================================================
 
   Future<void> _captureFace() async {
     if (_cameraController == null ||
         !_cameraController!.value.isInitialized ||
-        _isCapturing) {
+        _isCapturing ||
+        _isRegistering) {
       return;
     }
 
@@ -106,34 +126,96 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
     try {
       final XFile image = await _cameraController!.takePicture();
 
+      final File imageFile = File(image.path);
+
       print('CAPTURED IMAGE PATH: ${image.path}');
 
       print(
         'IMAGE EXISTS: '
-        '${File(image.path).existsSync()}',
+        '${imageFile.existsSync()}',
       );
 
       print(
         'IMAGE SIZE: '
-        '${File(image.path).lengthSync()} bytes',
+        '${imageFile.lengthSync()} bytes',
       );
+
+      if (!mounted) return;
+
+      setState(() {
+        if (_currentStep == 0) {
+          _frontImage = imageFile;
+        } else if (_currentStep == 1) {
+          _leftImage = imageFile;
+        } else if (_currentStep == 2) {
+          _rightImage = imageFile;
+        }
+
+        _isCapturing = false;
+      });
+
+      // --------------------------------------------------------
+      // Move to next step
+      // --------------------------------------------------------
+
+      if (_currentStep < 2) {
+        setState(() {
+          _currentStep++;
+        });
+      } else {
+        // All three images captured
+        await _registerAllFaces();
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isCapturing = false;
+        _errorMessage = 'Could not capture the image.';
+      });
+
+      debugPrint('CAPTURE ERROR: $e');
+    }
+  }
+
+  // ============================================================
+  // REGISTER ALL THREE FACES
+  // ============================================================
+
+  Future<void> _registerAllFaces() async {
+    if (_frontImage == null ||
+        _leftImage == null ||
+        _rightImage == null ||
+        _isRegistering) {
+      return;
+    }
+
+    setState(() {
+      _isRegistering = true;
+      _errorMessage = null;
+    });
+
+    try {
+      print('REGISTERING THREE FACE VIEWS...');
 
       final apiService = ApiService();
 
       await apiService.registerFace(
-        imageFile: File(image.path),
+        frontImage: _frontImage!,
+        leftImage: _leftImage!,
+        rightImage: _rightImage!,
         accessToken: widget.accessToken,
       );
 
       if (!mounted) return;
 
       setState(() {
-        _isCapturing = false;
+        _isRegistering = false;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Face registered successfully.'),
+          content: Text('All three face views registered successfully.'),
           backgroundColor: Colors.green,
         ),
       );
@@ -156,10 +238,58 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
       if (!mounted) return;
 
       setState(() {
-        _isCapturing = false;
+        _isRegistering = false;
         _errorMessage = e.toString().replaceFirst('Exception: ', '');
       });
     }
+  }
+
+  // ============================================================
+  // STEP TITLE
+  // ============================================================
+
+  String get _stepTitle {
+    if (_currentStep == 0) {
+      return 'Look Straight';
+    }
+
+    if (_currentStep == 1) {
+      return 'Turn Your Head Left';
+    }
+
+    return 'Turn Your Head Right';
+  }
+
+  // ============================================================
+  // STEP INSTRUCTION
+  // ============================================================
+
+  String get _stepInstruction {
+    if (_currentStep == 0) {
+      return 'Look directly at the camera and keep your face straight.';
+    }
+
+    if (_currentStep == 1) {
+      return 'Slowly turn your head to the left and keep your face clearly visible.';
+    }
+
+    return 'Slowly turn your head to the right and keep your face clearly visible.';
+  }
+
+  // ============================================================
+  // BUTTON TEXT
+  // ============================================================
+
+  String get _buttonText {
+    if (_currentStep == 0) {
+      return 'Capture Front Face';
+    }
+
+    if (_currentStep == 1) {
+      return 'Capture Left Face';
+    }
+
+    return 'Capture Right Face';
   }
 
   // ============================================================
@@ -192,6 +322,10 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
     );
   }
 
+  // ============================================================
+  // BODY
+  // ============================================================
+
   Widget _buildBody() {
     if (_errorMessage != null && !_isCameraReady) {
       return Center(
@@ -205,17 +339,13 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
                 color: Colors.white,
                 size: 60,
               ),
-
               const SizedBox(height: 20),
-
               Text(
                 _errorMessage!,
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
-
               const SizedBox(height: 20),
-
               ElevatedButton(
                 onPressed: () {
                   setState(() {
@@ -240,10 +370,41 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
 
     return Column(
       children: [
-        // ========================================================
-        // CAMERA PREVIEW
-        // ========================================================
+        // ======================================================
+        // STEP INDICATOR
+        // ======================================================
 
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 15),
+          color: Colors.black,
+          child: Row(
+            children: [
+              _buildStepIndicator(0, 'Front'),
+
+              Expanded(
+                child: Container(
+                  height: 2,
+                  color: _currentStep >= 1 ? Colors.green : Colors.white24,
+                ),
+              ),
+
+              _buildStepIndicator(1, 'Left'),
+
+              Expanded(
+                child: Container(
+                  height: 2,
+                  color: _currentStep >= 2 ? Colors.green : Colors.white24,
+                ),
+              ),
+
+              _buildStepIndicator(2, 'Right'),
+            ],
+          ),
+        ),
+
+        // ======================================================
+        // CAMERA PREVIEW
+        // ======================================================
         Expanded(
           child: Stack(
             alignment: Alignment.center,
@@ -274,38 +435,70 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
                     color: Colors.black54,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    'Position your face inside the frame\n'
-                    'and make sure your face is clearly visible.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white, fontSize: 14),
+                  child: Column(
+                    children: [
+                      Text(
+                        _stepTitle,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        _stepInstruction,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
 
-              if (_isCapturing)
+              // Processing overlay
+              if (_isCapturing || _isRegistering)
                 Container(
                   color: Colors.black54,
-                  child: const Center(
-                    child: CircularProgressIndicator(color: Colors.white),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(color: Colors.white),
+                        const SizedBox(height: 15),
+                        Text(
+                          _isRegistering
+                              ? 'Registering your face...'
+                              : 'Capturing...',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
             ],
           ),
         ),
 
-        // ========================================================
+        // ======================================================
         // BOTTOM SECTION
-        // ========================================================
+        // ======================================================
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(25),
           color: Colors.black,
           child: Column(
             children: [
-              const Text(
-                'Register Your Face',
-                style: TextStyle(
+              Text(
+                _buttonText,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -314,16 +507,13 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
 
               const SizedBox(height: 8),
 
-              const Text(
-                'Your face will be securely registered '
-                'for attendance verification.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white70, fontSize: 13),
+              Text(
+                '${_currentStep + 1} of 3',
+                style: const TextStyle(color: Colors.white70, fontSize: 13),
               ),
 
               if (_errorMessage != null) ...[
                 const SizedBox(height: 12),
-
                 Text(
                   _errorMessage!,
                   textAlign: TextAlign.center,
@@ -338,9 +528,11 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
                 width: 70,
                 height: 70,
                 child: FloatingActionButton(
-                  onPressed: _isCapturing ? null : _captureFace,
+                  onPressed: (_isCapturing || _isRegistering)
+                      ? null
+                      : _captureFace,
                   backgroundColor: Colors.white,
-                  child: _isCapturing
+                  child: (_isCapturing || _isRegistering)
                       ? const CircularProgressIndicator()
                       : const Icon(
                           Icons.camera_alt,
@@ -350,6 +542,52 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
                 ),
               ),
             ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // STEP INDICATOR
+  // ============================================================
+
+  Widget _buildStepIndicator(int step, String label) {
+    final bool completed = step < _currentStep;
+
+    final bool current = step == _currentStep;
+
+    return Column(
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: completed
+                ? Colors.green
+                : current
+                ? Colors.white
+                : Colors.white24,
+          ),
+          child: Center(
+            child: completed
+                ? const Icon(Icons.check, color: Colors.white, size: 18)
+                : Text(
+                    '${step + 1}',
+                    style: TextStyle(
+                      color: current ? Colors.black : Colors.white70,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          label,
+          style: TextStyle(
+            color: current || completed ? Colors.white : Colors.white54,
+            fontSize: 11,
           ),
         ),
       ],

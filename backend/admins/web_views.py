@@ -118,7 +118,8 @@ def add_student(request):
                     username=username,
                     password=password,
                     role='student',
-                    status='Active'
+                    status='Active',
+                    first_login=1
                 )
 
                 Student.objects.create(

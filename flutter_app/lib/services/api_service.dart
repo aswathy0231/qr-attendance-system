@@ -139,7 +139,9 @@ class ApiService {
   // ============================================================
 
   Future<Map<String, dynamic>> registerFace({
-    required File imageFile,
+    required File frontImage,
+    required File leftImage,
+    required File rightImage,
     required String accessToken,
   }) async {
     try {
@@ -151,11 +153,29 @@ class ApiService {
       // JWT authentication
       request.headers['Authorization'] = 'Bearer $accessToken';
 
-      // Add face image
+      // Front face
       request.files.add(
         await http.MultipartFile.fromPath(
-          'image',
-          imageFile.path,
+          'front_image',
+          frontImage.path,
+          contentType: MediaType('image', 'jpeg'),
+        ),
+      );
+
+      // Left-side face
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'left_image',
+          leftImage.path,
+          contentType: MediaType('image', 'jpeg'),
+        ),
+      );
+
+      // Right-side face
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'right_image',
+          rightImage.path,
           contentType: MediaType('image', 'jpeg'),
         ),
       );

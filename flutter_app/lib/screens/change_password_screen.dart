@@ -79,7 +79,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
-          builder: (context) => DashboardScreen(student: widget.student),
+          builder: (context) => DashboardScreen(
+            student: widget.student,
+            accessToken: widget.accessToken,
+          ),
         ),
         (route) => false,
       );

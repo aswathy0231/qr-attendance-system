@@ -760,50 +760,80 @@ class FaceRegistrationView(APIView):
             )
 
         # ----------------------------------------------------
-        # Get uploaded image
+        # Get the three uploaded images
         # ----------------------------------------------------
 
-        image = request.FILES.get('image')
+        front_image = request.FILES.get('front_image')
+        left_image = request.FILES.get('left_image')
+        right_image = request.FILES.get('right_image')
 
-        if not image:
+        if not front_image:
 
             return Response(
                 {
-                    'error': 'Face image is required'
+                    'error': 'Front face image is required'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not left_image:
+
+            return Response(
+                {
+                    'error': 'Left face image is required'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not right_image:
+
+            return Response(
+                {
+                    'error': 'Right face image is required'
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         # ----------------------------------------------------
-        # Basic image validation
+        # Validate uploaded images
         # ----------------------------------------------------
-
-        if image.size > 5 * 1024 * 1024:
-
-            return Response(
-                {
-                    'error': (
-                        'Image size must be less than 5 MB'
-                    )
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
 
         allowed_types = [
             'image/jpeg',
             'image/png'
         ]
 
-        if image.content_type not in allowed_types:
+        images = {
+            'front': front_image,
+            'left': left_image,
+            'right': right_image,
+        }
 
-            return Response(
-                {
-                    'error': (
-                        'Only JPEG and PNG images are allowed'
-                    )
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        for view_name, image in images.items():
+
+            if image.size > 5 * 1024 * 1024:
+
+                return Response(
+                    {
+                        'error': (
+                            f'{view_name.capitalize()} face image '
+                            'must be less than 5 MB'
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            if image.content_type not in allowed_types:
+
+                return Response(
+                    {
+                        'error': (
+                            f'{view_name.capitalize()} face image '
+                            'must be JPEG or PNG'
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
         # ----------------------------------------------------
         # Locate face_env Python
@@ -855,144 +885,197 @@ class FaceRegistrationView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-        temporary_image_path = None
+        temporary_files = []
 
         try:
 
-            # ------------------------------------------------
-            # Save uploaded image temporarily
-            # ------------------------------------------------
-
-            temporary_file = tempfile.NamedTemporaryFile(
-                delete=False,
-                suffix='.jpg'
-            )
-
-            temporary_image_path = temporary_file.name
-
-            for chunk in image.chunks():
-
-                temporary_file.write(chunk)
-
-            temporary_file.close()
+            encodings = {}
 
             # ------------------------------------------------
-            # Run face encoder
+            # Process each face view
             # ------------------------------------------------
 
-            result = subprocess.run(
-                [
-                    face_python,
-                    face_encoder_script,
+            for view_name, image in images.items():
+
+                temporary_file = tempfile.NamedTemporaryFile(
+                    delete=False,
+                    suffix='.jpg'
+                )
+
+                temporary_image_path = temporary_file.name
+
+                temporary_files.append(
                     temporary_image_path
-                ],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True,
-                timeout=30
+                )
+
+                # Save uploaded image
+                for chunk in image.chunks():
+
+                    temporary_file.write(chunk)
+
+                temporary_file.close()
+
+                print(
+                    f'PROCESSING {view_name.upper()} FACE: '
+                    f'{temporary_image_path}'
+                )
+
+                # ------------------------------------------------
+                # Run face encoder
+                # ------------------------------------------------
+
+                result = subprocess.run(
+                    [
+                        face_python,
+                        face_encoder_script,
+                        temporary_image_path
+                    ],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True,
+                    timeout=30
+                )
+
+                # ------------------------------------------------
+                # Check encoder process
+                # ------------------------------------------------
+
+                if result.returncode != 0:
+
+                    print(
+                        f'FACE ENCODER ERROR '
+                        f'({view_name}): '
+                        f'{result.stderr}'
+                    )
+
+                    return Response(
+                        {
+                            'error': (
+                                f'{view_name.capitalize()} face '
+                                'processing failed'
+                            )
+                        },
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+
+                output = result.stdout.strip()
+
+                if not output:
+
+                    return Response(
+                        {
+                            'error': (
+                                f'No response from face '
+                                f'recognition service for '
+                                f'{view_name} face'
+                            )
+                        },
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+
+                # ------------------------------------------------
+                # Convert JSON result
+                # ------------------------------------------------
+
+                try:
+
+                    face_result = json.loads(output)
+
+                except json.JSONDecodeError:
+
+                    print(
+                        f'INVALID FACE ENCODER OUTPUT '
+                        f'({view_name}): {output}'
+                    )
+
+                    return Response(
+                        {
+                            'error': (
+                                f'Invalid response from face '
+                                f'recognition service for '
+                                f'{view_name} face'
+                            )
+                        },
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+
+                # ------------------------------------------------
+                # Check face processing result
+                # ------------------------------------------------
+
+                if not face_result.get('success'):
+
+                    face_error = face_result.get(
+                        'error',
+                        'Face could not be processed'
+                    )
+
+                    return Response(
+                        {
+                            'error': (
+                                f'{view_name.capitalize()} face: '
+                                f'{face_error}'
+                            )
+                        },
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+                encoding = face_result.get('encoding')
+
+                # ------------------------------------------------
+                # Validate 128-dimensional encoding
+                # ------------------------------------------------
+
+                if not encoding or len(encoding) != 128:
+
+                    return Response(
+                        {
+                            'error': (
+                                f'Invalid {view_name} face '
+                                'encoding'
+                            )
+                        },
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+
+                encodings[view_name] = encoding
+
+            # ----------------------------------------------------
+            # Store all three face encodings
+            # ----------------------------------------------------
+
+            face_data = json.dumps(
+                {
+                    'front': encodings['front'],
+                    'left': encodings['left'],
+                    'right': encodings['right'],
+                }
             )
-
-            # ------------------------------------------------
-            # Check face encoder process
-            # ------------------------------------------------
-
-            if result.returncode != 0:
-
-                return Response(
-                    {
-                        'error': (
-                            'Face processing failed'
-                        )
-                    },
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-
-            output = result.stdout.strip()
-
-            if not output:
-
-                return Response(
-                    {
-                        'error': (
-                            'No response from face '
-                            'recognition service'
-                        )
-                    },
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-
-            # ------------------------------------------------
-            # Convert JSON result
-            # ------------------------------------------------
-
-            try:
-
-                face_result = json.loads(output)
-
-            except json.JSONDecodeError:
-
-                return Response(
-                    {
-                        'error': (
-                            'Invalid response from face '
-                            'recognition service'
-                        )
-                    },
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-
-            # ------------------------------------------------
-            # Check face processing result
-            # ------------------------------------------------
-
-            if not face_result.get('success'):
-
-                return Response(
-                    {
-                        'error': face_result.get(
-                            'error',
-                            'Face could not be processed'
-                        )
-                    },
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            encoding = face_result.get('encoding')
-
-            if not encoding or len(encoding) != 128:
-
-                return Response(
-                    {
-                        'error': (
-                            'Invalid face encoding'
-                        )
-                    },
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-
-            # ------------------------------------------------
-            # Store face encoding
-            # ------------------------------------------------
 
             face_registration = FaceRegistration.objects.create(
                 student_id=student.student_id,
-                face_data=json.dumps(encoding),
+                face_data=face_data,
                 registered_at=timezone.now()
             )
 
-            # ------------------------------------------------
+            # ----------------------------------------------------
             # Successful registration
-            # ------------------------------------------------
+            # ----------------------------------------------------
 
             return Response(
                 {
                     'message': (
-                        'Face registered successfully'
+                        'Face registration completed successfully'
                     ),
                     'face_id':
                         face_registration.face_id,
                     'student_id':
                         student.student_id,
+                    'views_registered': [
+                        'front',
+                        'left',
+                        'right',
+                    ],
                 },
                 status=status.HTTP_201_CREATED
             )
@@ -1008,7 +1091,11 @@ class FaceRegistrationView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-        except Exception:
+        except Exception as e:
+
+            print(
+                f'FACE REGISTRATION ERROR: {e}'
+            )
 
             return Response(
                 {
@@ -1023,19 +1110,30 @@ class FaceRegistrationView(APIView):
         finally:
 
             # ------------------------------------------------
-            # Always remove temporary image
+            # Remove all temporary images
             # ------------------------------------------------
 
-            if (
-                temporary_image_path
-                and os.path.exists(temporary_image_path)
-            ):
+            for temporary_image_path in temporary_files:
 
-                try:
-                    os.remove(temporary_image_path)
-                except OSError:
-                    pass
-                
+                if os.path.exists(
+                    temporary_image_path
+                ):
+
+                    try:
+
+                        os.remove(
+                            temporary_image_path
+                        )
+
+                    except OSError:
+
+                        pass
+
+
+# ============================================================
+# DEVICE REGISTRATION
+# ============================================================
+
 class DeviceRegistrationView(APIView):
 
     permission_classes = [IsStudent]
@@ -1045,21 +1143,40 @@ class DeviceRegistrationView(APIView):
         user_id = request.auth.get('user_id')
 
         try:
-            student = Student.objects.get(user_id=user_id)
+
+            student = Student.objects.get(
+                user_id=user_id
+            )
+
         except Student.DoesNotExist:
+
             return Response(
-                {'error': 'Student not found'},
+                {
+                    'error': 'Student not found'
+                },
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        device_uuid = request.data.get('device_uuid')
-        device_name = request.data.get('device_name')
+        device_uuid = request.data.get(
+            'device_uuid'
+        )
+
+        device_name = request.data.get(
+            'device_name'
+        )
 
         if not device_uuid:
+
             return Response(
-                {'error': 'device_uuid is required'},
+                {
+                    'error': 'device_uuid is required'
+                },
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        # ----------------------------------------------------
+        # Check whether this student already has a device
+        # ----------------------------------------------------
 
         existing_registration = (
             DeviceRegistration.objects.filter(
@@ -1069,50 +1186,108 @@ class DeviceRegistrationView(APIView):
 
         if existing_registration:
 
-            if existing_registration.device_uuid == device_uuid:
+            # Same student + same device
+            if (
+                existing_registration.device_uuid
+                == device_uuid
+            ):
+
                 return Response(
                     {
-                        'message': 'Device is already registered',
+                        'message':
+                            'Device is already registered',
+
                         'device_registration_id':
-                            existing_registration.device_registration_id,
+                            existing_registration
+                            .device_registration_id,
+
                         'student_id':
-                            existing_registration.student_id,
+                            existing_registration
+                            .student_id,
+
                         'device_uuid':
-                            existing_registration.device_uuid,
+                            existing_registration
+                            .device_uuid,
+
                         'device_name':
-                            existing_registration.device_name,
+                            existing_registration
+                            .device_name,
+
                         'registered_at':
-                            existing_registration.registered_at,
+                            existing_registration
+                            .registered_at,
                     },
                     status=status.HTTP_200_OK
                 )
 
+            # Same student trying another device
             return Response(
-                {'error': 'This student already has a registered device'},
+                {
+                    'error':
+                        'This student already has a '
+                        'registered device'
+                },
                 status=status.HTTP_409_CONFLICT
             )
 
-        device_registration = DeviceRegistration.objects.create(
-            student_id=student.student_id,
-            device_uuid=device_uuid,
-            device_name=device_name,
-            registered_at=timezone.now()
+        # ----------------------------------------------------
+        # Check whether this device belongs to another student
+        # ----------------------------------------------------
+
+        device_already_registered = (
+            DeviceRegistration.objects.filter(
+                device_uuid=device_uuid
+            ).first()
+        )
+
+        if device_already_registered:
+
+            return Response(
+                {
+                    'error':
+                        'This device is already registered '
+                        'to another student'
+                },
+                status=status.HTTP_409_CONFLICT
+            )
+
+        # ----------------------------------------------------
+        # Register new device
+        # ----------------------------------------------------
+
+        device_registration = (
+            DeviceRegistration.objects.create(
+                student_id=student.student_id,
+                device_uuid=device_uuid,
+                device_name=device_name,
+                registered_at=timezone.now()
+            )
         )
 
         return Response(
             {
-                'message': 'Device registered successfully',
+                'message':
+                    'Device registered successfully',
+
                 'device_registration_id':
-                    device_registration.device_registration_id,
+                    device_registration
+                    .device_registration_id,
+
                 'student_id':
-                    device_registration.student_id,
+                    device_registration
+                    .student_id,
+
                 'device_uuid':
-                    device_registration.device_uuid,
+                    device_registration
+                    .device_uuid,
+
                 'device_name':
-                    device_registration.device_name,
+                    device_registration
+                    .device_name,
+
                 'registered_at':
-                    device_registration.registered_at,
+                    device_registration
+                    .registered_at,
             },
             status=status.HTTP_201_CREATED
         )
-        

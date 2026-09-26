@@ -10,10 +10,12 @@ import 'login_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   final StudentModel student;
+  final String accessToken;
 
   const DashboardScreen({
     super.key,
     required this.student,
+    required this.accessToken,
   });
 
   @override
@@ -78,10 +80,7 @@ class DashboardScreen extends StatelessWidget {
                 height: 155,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      Color(0xFF1455D1),
-                      Color(0xFF2D70E5),
-                    ],
+                    colors: [Color(0xFF1455D1), Color(0xFF2D70E5)],
                   ),
                   borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(35),
@@ -92,12 +91,10 @@ class DashboardScreen extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
-                      Icons.menu,
-                      color: Colors.white,
-                      size: 27,
-                    ),
+                    const Icon(Icons.menu, color: Colors.white, size: 27),
+
                     const SizedBox(width: 20),
+
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -125,10 +122,8 @@ class DashboardScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const Icon(
-                      Icons.notifications,
-                      color: Colors.white,
-                    ),
+
+                    const Icon(Icons.notifications, color: Colors.white),
                   ],
                 ),
               ),
@@ -136,13 +131,10 @@ class DashboardScreen extends StatelessWidget {
               // ==================================================
               // DATE CARD
               // ==================================================
-
               Transform.translate(
                 offset: const Offset(0, -35),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -161,16 +153,16 @@ class DashboardScreen extends StatelessWidget {
                           Icons.calendar_month,
                           color: Color(0xFF175CD3),
                         ),
+
                         const SizedBox(width: 12),
+
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
                                 "Today's Date",
-                                style: TextStyle(
-                                  fontSize: 12,
-                                ),
+                                style: TextStyle(fontSize: 12),
                               ),
 
                               const SizedBox(height: 3),
@@ -185,6 +177,7 @@ class DashboardScreen extends StatelessWidget {
                             ],
                           ),
                         ),
+
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 14,
@@ -196,9 +189,7 @@ class DashboardScreen extends StatelessWidget {
                           ),
                           child: Text(
                             formattedDay,
-                            style: const TextStyle(
-                              color: Color(0xFF175CD3),
-                            ),
+                            style: const TextStyle(color: Color(0xFF175CD3)),
                           ),
                         ),
                       ],
@@ -210,13 +201,10 @@ class DashboardScreen extends StatelessWidget {
               // ==================================================
               // THREE MAIN CARDS
               // ==================================================
-
               Transform.translate(
                 offset: const Offset(0, -20),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 15,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
                   child: Row(
                     children: [
                       // ==================================================
@@ -230,9 +218,7 @@ class DashboardScreen extends StatelessWidget {
                           const Color(0xFF4057E8),
                           'Scan QR',
                           'Mark your attendance',
-                          ScannerScreen(
-                            studentId: student.id,
-                          ),
+                          ScannerScreen(studentId: student.id),
                         ),
                       ),
 
@@ -241,7 +227,6 @@ class DashboardScreen extends StatelessWidget {
                       // ==================================================
                       // ATTENDANCE HISTORY
                       // ==================================================
-
                       Expanded(
                         child: _dashboardCard(
                           context,
@@ -249,9 +234,7 @@ class DashboardScreen extends StatelessWidget {
                           const Color(0xFF39B66A),
                           'Attendance',
                           'View attendance history',
-                          AttendanceHistoryScreen(
-                            studentId: student.id,
-                          ),
+                          AttendanceHistoryScreen(studentId: student.id),
                         ),
                       ),
 
@@ -260,7 +243,6 @@ class DashboardScreen extends StatelessWidget {
                       // ==================================================
                       // PROFILE
                       // ==================================================
-
                       Expanded(
                         child: _dashboardCard(
                           context,
@@ -268,25 +250,21 @@ class DashboardScreen extends StatelessWidget {
                           const Color(0xFFFF9D2E),
                           'Profile',
                           'View your profile',
-                          ProfileScreen(
-                            student: student,
-                          ),
+                          ProfileScreen(student: student),
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
+
               // ==================================================
               // DEVICE REGISTRATION
               // ==================================================
-
               Transform.translate(
                 offset: const Offset(0, -15),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
                   child: SizedBox(
                     width: double.infinity,
                     height: 55,
@@ -295,16 +273,14 @@ class DashboardScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) =>
-                                DeviceRegistrationScreen(
+                            builder: (context) => DeviceRegistrationScreen(
                               student: student,
+                              accessToken: accessToken,
                             ),
                           ),
                         );
                       },
-                      icon: const Icon(
-                        Icons.phonelink_lock,
-                      ),
+                      icon: const Icon(Icons.phonelink_lock),
                       label: const Text(
                         'Register This Device',
                         style: TextStyle(
@@ -324,16 +300,14 @@ class DashboardScreen extends StatelessWidget {
                   ),
                 ),
               ),
+
               // ==================================================
               // NOTICE
               // ==================================================
-
               Transform.translate(
                 offset: const Offset(0, -10),
                 child: Container(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                  ),
+                  margin: const EdgeInsets.symmetric(horizontal: 18),
                   padding: const EdgeInsets.all(15),
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -341,31 +315,29 @@ class DashboardScreen extends StatelessWidget {
                   ),
                   child: const Row(
                     children: [
-                      Icon(
-                        Icons.campaign_outlined,
-                        color: Color(0xFF175CD3),
-                      ),
+                      Icon(Icons.campaign_outlined, color: Color(0xFF175CD3)),
+
                       SizedBox(width: 12),
+
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               'Notice',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: TextStyle(fontWeight: FontWeight.bold),
                             ),
+
                             SizedBox(height: 5),
+
                             Text(
                               'Ensure you scan the QR code within the class time.',
-                              style: TextStyle(
-                                fontSize: 11,
-                              ),
+                              style: TextStyle(fontSize: 11),
                             ),
                           ],
                         ),
                       ),
+
                       Icon(Icons.chevron_right),
                     ],
                   ),
@@ -375,7 +347,6 @@ class DashboardScreen extends StatelessWidget {
               // ==================================================
               // LOGOUT BUTTON
               // ==================================================
-
               Transform.translate(
                 offset: const Offset(0, -5),
                 child: Padding(
@@ -396,9 +367,7 @@ class DashboardScreen extends StatelessWidget {
                           (route) => false,
                         );
                       },
-                      icon: const Icon(
-                        Icons.logout,
-                      ),
+                      icon: const Icon(Icons.logout),
                       label: const Text(
                         'Logout',
                         style: TextStyle(
@@ -438,12 +407,7 @@ class DashboardScreen extends StatelessWidget {
   ) {
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => page,
-          ),
-        );
+        Navigator.push(context, MaterialPageRoute(builder: (context) => page));
       },
       child: Container(
         height: 170,
@@ -467,28 +431,23 @@ class DashboardScreen extends StatelessWidget {
                 color: color,
                 borderRadius: BorderRadius.circular(17),
               ),
-              child: Icon(
-                icon,
-                color: Colors.white,
-                size: 30,
-              ),
+              child: Icon(icon, color: Colors.white, size: 30),
             ),
+
             const SizedBox(height: 10),
+
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
             ),
+
             const SizedBox(height: 5),
+
             Text(
               description,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 11,
-              ),
+              style: const TextStyle(fontSize: 11),
             ),
           ],
         ),
