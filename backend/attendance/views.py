@@ -8,6 +8,10 @@ import tempfile
 from datetime import timedelta
 
 from django.utils import timezone
+from django.conf import settings
+
+from urllib.request import Request, urlopen
+from urllib.error import URLError, HTTPError
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -34,6 +38,50 @@ from accounts.permissions import IsStudent
 
 
 # ============================================================
+# BLE BEACON COMMAND HELPER
+# ============================================================
+
+def send_ble_command(command):
+    """
+    Send a start/stop command to the local Windows BLE app.
+    Returns (success, error_message).
+    """
+
+    token = getattr(settings, "BLE_CONTROL_TOKEN", "")
+    base_url = getattr(
+        settings,
+        "BLE_CONTROL_URL",
+        "http://127.0.0.1:8765"
+    )
+
+    if not token:
+        return False, "BLE control token is not configured."
+
+    if command not in ("start", "stop"):
+        return False, "Invalid BLE command."
+
+    request = Request(
+        f"{base_url}/{command}",
+        data=b"",
+        headers={"X-BLE-Token": token},
+        method="POST"
+    )
+
+    try:
+        with urlopen(request, timeout=3) as response:
+            if response.status == 200:
+                return True, None
+
+            return False, f"BLE app returned HTTP {response.status}."
+
+    except HTTPError as exc:
+        return False, f"BLE app returned HTTP {exc.code}."
+
+    except (URLError, TimeoutError, OSError) as exc:
+        return False, f"Could not contact BLE app: {exc}"
+
+
+# ============================================================
 # SESSION EXPIRY HELPER
 # ============================================================
 
@@ -52,6 +100,9 @@ def expire_session_if_needed(session):
         session.save(
             update_fields=['status']
         )
+
+        # Stop BLE when the backend detects session expiry.
+        send_ble_command("stop")
 
         return True
 
@@ -119,6 +170,28 @@ class CreateAttendanceSessionView(APIView):
             end_time=end_time,
             status='Running'
         )
+
+        # Start BLE advertising on the teacher's laptop.
+        ble_started, ble_error = send_ble_command("start")
+
+        if not ble_started:
+            # Do not leave an active session if BLE failed.
+            session.status = 'Ended'
+            session.end_time = timezone.now()
+            session.save(
+                update_fields=['status', 'end_time']
+            )
+
+            return Response(
+                {
+                    'error': (
+                        'Could not start the BLE beacon. '
+                        'Attendance was not started.'
+                    ),
+                    'details': ble_error,
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
 
         return Response(
             AttendanceSessionSerializer(session).data,
@@ -270,15 +343,26 @@ class EndAttendanceSessionView(APIView):
             ]
         )
 
+        # Stop BLE advertising.
+        ble_stopped, ble_error = send_ble_command("stop")
+
+        response_data = {
+            'message': 'Attendance session ended successfully',
+            'session_id': session.session_id,
+            'status': session.status,
+            'end_time': session.end_time,
+            'ble_stopped': ble_stopped,
+        }
+
+        if not ble_stopped:
+            response_data['warning'] = (
+                'The session ended, but BLE could not be stopped. '
+                'Please stop the beacon manually.'
+            )
+            response_data['ble_error'] = ble_error
+
         return Response(
-            {
-                'message': (
-                    'Attendance session ended successfully'
-                ),
-                'session_id': session.session_id,
-                'status': session.status,
-                'end_time': session.end_time
-            },
+            response_data,
             status=status.HTTP_200_OK
         )
 
@@ -293,6 +377,7 @@ class MarkAttendanceView(APIView):
 
         student_id = request.data.get('student_id')
         qr_token = request.data.get('qr_token')
+        ble_verified = request.data.get('ble_verified', False)
 
         # Check required data
         if not student_id or not qr_token:
@@ -304,6 +389,13 @@ class MarkAttendanceView(APIView):
                         'are required'
                     )
                 },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        #Check BLE verification
+        if ble_verified is not True:
+            return Response(
+                {'error': 'Teacher BLE verification is required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -354,7 +446,7 @@ class MarkAttendanceView(APIView):
             student_id=student_id,
             attendance_time=timezone.now(),
             face_verified=False,
-            ble_verified=False,
+            ble_verified=ble_verified,
             status='Present'
         )
 

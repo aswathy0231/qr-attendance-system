@@ -39,3 +39,7 @@ flutter_app/.packages
 # OS
 .DS_Store
 Thumbs.db
+
+# .NET build outputs
+BleBeaconTest/bin/
+BleBeaconTest/obj/
