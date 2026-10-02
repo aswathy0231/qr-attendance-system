@@ -39,3 +39,7 @@ flutter_app/.packages
 # OS
 .DS_Store
 Thumbs.db
+
+# Windows BLE application
+BleBeaconTest/bin/
+BleBeaconTest/obj/

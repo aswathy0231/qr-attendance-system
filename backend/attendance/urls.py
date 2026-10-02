@@ -7,7 +7,10 @@ from .views import (
     MarkAttendanceView,
     AttendanceHistoryView,
     TeacherAttendanceView,
+    FaceRegistrationStatusView,
     FaceRegistrationView,
+    FaceVerificationView,
+    DeviceRegistrationStatusView,
     DeviceRegistrationView,
 )
 
@@ -79,9 +82,25 @@ urlpatterns = [
     # --------------------------------------------------------
 
     path(
+        'face/status/',
+        FaceRegistrationStatusView.as_view(),
+        name='face-registration-status',
+    ),  
+    
+    path(
         'face/register/',
         FaceRegistrationView.as_view(),
         name='face-register',
+    ),
+
+    # --------------------------------------------------------
+    # FACE VERIFICATION
+    # --------------------------------------------------------
+
+    path(
+        'face/verify/',
+        FaceVerificationView.as_view(),
+        name='face-verification',
     ),
 
     # --------------------------------------------------------
@@ -89,11 +108,15 @@ urlpatterns = [
     # --------------------------------------------------------
 
     path(
+    'device/status/',
+    DeviceRegistrationStatusView.as_view(),
+    name='device-registration-status',
+),
+    
+    path(
         'device/register/',
         DeviceRegistrationView.as_view(),
         name='device-registration',
     ),
 
 ]
-
-    

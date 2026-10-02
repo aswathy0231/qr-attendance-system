@@ -6,7 +6,9 @@ import 'package:http/http.dart' as http;
 import '../models/student_model.dart';
 import '../services/api_service.dart';
 
+import 'change_password_screen.dart';
 import 'dashboard_screen.dart';
+import 'device_registration_screen.dart';
 import 'face_registration_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -119,40 +121,21 @@ class _LoginScreenState extends State<LoginScreen> {
           '${student.registerNumber}',
         );
 
-        setState(() {
-          isLoading = false;
-        });
-
         // ========================================================
         // FIRST LOGIN CHECK
         // ========================================================
 
         final int? firstLogin = data['first_login'];
 
-        if (firstLogin == 1) {
-          // ------------------------------------------------------
-          // NEW STUDENT
-          // Start face registration.
-          // ------------------------------------------------------
+        // --------------------------------------------------------
+        // EXISTING STUDENT
+        // first_login = 0 or null
+        // --------------------------------------------------------
 
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => FaceRegistrationScreen(
-                student: student,
-                accessToken: data['access'],
-              ),
-            ),
-          );
-        } else {
-          // ------------------------------------------------------
-          // EXISTING STUDENT
-          // Open dashboard.
-          //
-          // This handles:
-          // first_login = 0
-          // first_login = NULL
-          // ------------------------------------------------------
+        if (firstLogin != 1) {
+          setState(() {
+            isLoading = false;
+          });
 
           Navigator.pushReplacement(
             context,
@@ -163,7 +146,114 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           );
+
+          return;
         }
+
+        // ========================================================
+        // FIRST LOGIN
+        // ========================================================
+        // We now check:
+        // 1. Face registration
+        // 2. Device registration
+        //
+        // Depending on their status, the student continues from
+        // the first incomplete step.
+        // ========================================================
+
+        final String accessToken = data['access'];
+
+        // --------------------------------------------------------
+        // CHECK FACE REGISTRATION
+        // --------------------------------------------------------
+
+        print('Checking face registration...');
+
+        final bool faceRegistered = await apiService.isFaceRegistered(
+          accessToken: accessToken,
+        );
+
+        if (!mounted) return;
+
+        print('Face registered: $faceRegistered');
+
+        // --------------------------------------------------------
+        // FACE NOT REGISTERED
+        // --------------------------------------------------------
+
+        if (!faceRegistered) {
+          setState(() {
+            isLoading = false;
+          });
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => FaceRegistrationScreen(
+                student: student,
+                accessToken: accessToken,
+              ),
+            ),
+          );
+
+          return;
+        }
+
+        // ========================================================
+        // FACE ALREADY REGISTERED
+        // Check device registration.
+        // ========================================================
+
+        print('Checking device registration...');
+
+        final bool deviceRegistered = await apiService.isDeviceRegistered(
+          accessToken: accessToken,
+        );
+
+        if (!mounted) return;
+
+        print('Device registered: $deviceRegistered');
+
+        // --------------------------------------------------------
+        // DEVICE NOT REGISTERED
+        // --------------------------------------------------------
+
+        if (!deviceRegistered) {
+          setState(() {
+            isLoading = false;
+          });
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DeviceRegistrationScreen(
+                student: student,
+                accessToken: accessToken,
+              ),
+            ),
+          );
+
+          return;
+        }
+
+        // ========================================================
+        // FACE + DEVICE ALREADY REGISTERED
+        // Go directly to change password.
+        // ========================================================
+
+        setState(() {
+          isLoading = false;
+        });
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChangePasswordScreen(
+              student: student,
+              accessToken: accessToken,
+            ),
+          ),
+        );
       } else {
         setState(() {
           isLoading = false;

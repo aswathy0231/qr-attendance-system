@@ -777,10 +777,15 @@
 
                 if (!response.ok) {
 
-                    alert(
-                        data.error ||
-                        'Failed to start attendance.'
-                    );
+                    const message =
+                        data.details
+                            ? `${data.error}\n\nDetails: ${data.details}`
+                            : (
+                                data.error ||
+                                'Failed to start attendance.'
+                            );
+
+                    alert(message);
 
                     return;
                 }
@@ -956,17 +961,11 @@
 
 
                 /*
-                 * Reload the dashboard.
-                 *
-                 * The backend has already marked
-                 * the session as Ended.
-                 *
-                 * Reloading removes the old QR
-                 * session screen and restores the
-                 * normal dashboard.
+                 * End the session through Django
+                 * so that the backend also stops BLE.
                  */
 
-                window.location.reload();
+                endAttendance();
 
                 return;
 
@@ -1248,15 +1247,33 @@
 
                 /*
                  * If the session has already
-                 * expired, simply reload the
-                 * dashboard.
+                 * expired or another error occurred.
                  */
 
                 if (!response.ok) {
 
+                    alert(
+                        data.error ||
+                        'The attendance session may have already expired.'
+                    );
+
                     window.location.reload();
 
                     return;
+
+                }
+
+
+                /*
+                 * Check whether BLE was stopped.
+                 */
+
+                if (data.ble_stopped === false) {
+
+                    alert(
+                        'Attendance has ended, but the BLE beacon could not be stopped. ' +
+                        'Please stop it manually in the BLE application.'
+                    );
 
                 }
 

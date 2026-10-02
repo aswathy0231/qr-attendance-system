@@ -201,7 +201,54 @@ class ApiService {
     } catch (e) {
       print('FACE REGISTER ERROR: $e');
 
-      throw Exception('Could not register face.');
+      // Preserve the actual backend error.
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  // ============================================================
+  // CHECK FACE REGISTRATION STATUS
+  // ============================================================
+
+  Future<bool> isFaceRegistered({required String accessToken}) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/attendance/face/status/'),
+        headers: {'Authorization': 'Bearer $accessToken'},
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return data['registered'] == true;
+      }
+
+      throw Exception(data['error'] ?? 'Could not check face registration.');
+    } catch (e) {
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  // ============================================================
+  // CHECK DEVICE REGISTRATION STATUS
+  // ============================================================
+
+  Future<bool> isDeviceRegistered({required String accessToken}) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/attendance/device/status/'),
+        headers: {'Authorization': 'Bearer $accessToken'},
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return data['registered'] == true;
+      }
+
+      throw Exception(data['error'] ?? 'Could not check device registration.');
+    } catch (e) {
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
     }
   }
 
