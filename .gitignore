@@ -40,6 +40,6 @@ flutter_app/.packages
 .DS_Store
 Thumbs.db
 
-# Windows BLE application
+# Windows BLE application / .NET build outputs
 BleBeaconTest/bin/
 BleBeaconTest/obj/

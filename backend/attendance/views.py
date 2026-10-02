@@ -130,6 +130,7 @@ def expire_session_if_needed(session):
             update_fields=['status']
         )
 
+        # Stop BLE when the backend detects session expiry.
         send_ble_command("stop")
 
         return True
@@ -207,15 +208,23 @@ class CreateAttendanceSessionView(APIView):
 
             session.status = 'Ended'
             session.end_time = timezone.now()
-
             session.save(
                 update_fields=['status', 'end_time']
             )
 
             return Response(
                 {
-                    'error': 'Could not start BLE beacon',
-                    'details': ble_error
+        session.save(
+            update_fields=['status', 'end_time']
+        )
+
+        return Response(
+            {
+                'error': 'Could not start BLE beacon',
+                'details': ble_error
+            },
+            status=status.HTTP_503_SERVICE_UNAVAILABLE
+        )
                 },
                 status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
@@ -422,6 +431,13 @@ class MarkAttendanceView(APIView):
                         'are required'
                     )
                 },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        #Check BLE verification
+        if ble_verified is not True:
+            return Response(
+                {'error': 'Teacher BLE verification is required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
