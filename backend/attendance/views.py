@@ -67,16 +67,16 @@ def send_ble_command(command):
             "Invalid BLE command."
         )
 
-    request = Request(
-        f"{base_url}/{command}",
-        data=b"",
-        headers={
-            "X-BLE-Token": token
-        },
-        method="POST"
-    )
+    def send_request():
+        request = Request(
+            f"{base_url}/{command}",
+            data=b"",
+            headers={
+                "X-BLE-Token": token
+            },
+            method="POST"
+        )
 
-    try:
         with urlopen(
             request,
             timeout=3
@@ -93,7 +93,12 @@ def send_ble_command(command):
                 f"BLE app returned HTTP {response.status}."
             )
 
+    try:
+
+        return send_request()
+
     except HTTPError as exc:
+
         return (
             False,
             f"BLE app returned HTTP {exc.code}."
@@ -105,9 +110,79 @@ def send_ble_command(command):
         OSError
     ) as exc:
 
+        # Only start the BLE application automatically
+        # when the start command cannot reach it.
+        if command != "start":
+
+            return (
+                False,
+                f"Could not contact BLE app: {exc}"
+            )
+
+        ble_exe = getattr(
+            settings,
+            "BLE_CONTROL_EXE",
+            None
+        )
+
+        if not ble_exe:
+
+            return (
+                False,
+                "BLE executable path is not configured."
+            )
+
+        if not os.path.exists(ble_exe):
+
+            return (
+                False,
+                f"BLE executable not found: {ble_exe}"
+            )
+
+        try:
+
+            subprocess.Popen(
+                [str(ble_exe)],
+                env=os.environ.copy()
+            )
+
+        except OSError as launch_error:
+
+            return (
+                False,
+                f"Could not launch BLE app: {launch_error}"
+            )
+
+        # Give the BLE application's HTTP server time
+        # to start, then retry the command.
+        import time
+
+        for _ in range(10):
+
+            time.sleep(0.5)
+
+            try:
+
+                return send_request()
+
+            except (
+                URLError,
+                TimeoutError,
+                OSError
+            ):
+
+                continue
+
+            except HTTPError as retry_error:
+
+                return (
+                    False,
+                    f"BLE app returned HTTP {retry_error.code}."
+                )
+
         return (
             False,
-            f"Could not contact BLE app: {exc}"
+            "BLE app started, but its command server did not become ready."
         )
 
 

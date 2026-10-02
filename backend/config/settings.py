@@ -240,3 +240,12 @@ CORS_ALLOW_ALL_ORIGINS = True
 BLE_CONTROL_URL = "http://127.0.0.1:8765"
 
 BLE_CONTROL_TOKEN = os.environ.get("BLE_CONTROL_TOKEN", "")
+
+BLE_CONTROL_EXE = (
+    BASE_DIR.parent
+    / "BleBeaconTest"
+    / "bin"
+    / "Debug"
+    / "net10.0-windows10.0.19041.0"
+    / "BleBeaconTest.exe"
+)
