@@ -582,7 +582,7 @@
                 class="qr-countdown"
             >
 
-                QR refreshes in 60 seconds
+                QR refreshes in 30 seconds
 
             </p>
 
@@ -776,10 +776,6 @@
 
 
                 if (!response.ok) {
-                    const message = data.details
-                        ? `${data.error}\n\nDetails: ${data.details}`
-                        : (data.error || 'Failed to start attendance.');
-
 
                     const message =
                         data.details
@@ -1255,10 +1251,6 @@
                  */
 
                 if (!response.ok) {
-                    alert(
-                        data.error ||
-                        'The attendance session may have already expired.'
-                    );
 
                     alert(
                         data.error ||
@@ -1266,14 +1258,9 @@
                     );
 
                     window.location.reload();
-                    return;
-                }
 
-                if (data.ble_stopped === false) {
-                    alert(
-                        'Attendance has ended, but the BLE beacon could not be stopped. ' +
-                        'Please stop it manually in the BLE application.'
-                    );
+                    return;
+
                 }
 
 

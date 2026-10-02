@@ -218,7 +218,10 @@ class DashboardScreen extends StatelessWidget {
                           const Color(0xFF4057E8),
                           'Scan QR',
                           'Mark your attendance',
-                          ScannerScreen(studentId: student.id),
+                          ScannerScreen(
+                            studentId: student.id,
+                            accessToken: accessToken,
+                          ),
                         ),
                       ),
 

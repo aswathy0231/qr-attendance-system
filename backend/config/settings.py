@@ -12,6 +12,16 @@ from datetime import timedelta
 # Build paths inside the project
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Load local environment variables
+env_file = BASE_DIR / '.env'
+if env_file.exists():
+    with open(env_file) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                key, value = line.split('=', 1)
+                os.environ.setdefault(key.strip(), value.strip())
+
 
 # ============================================================
 # SECURITY
@@ -115,7 +125,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'attendance_system',
         'USER': 'root',
-        'PASSWORD': 'root123',
+        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
         'HOST': '127.0.0.1',
         'PORT': '3307',
     }

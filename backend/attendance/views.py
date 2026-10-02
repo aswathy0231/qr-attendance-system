@@ -9,6 +9,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 from django.conf import settings
+from django.core import signing
 
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
@@ -214,17 +215,8 @@ class CreateAttendanceSessionView(APIView):
 
             return Response(
                 {
-        session.save(
-            update_fields=['status', 'end_time']
-        )
-
-        return Response(
-            {
-                'error': 'Could not start BLE beacon',
-                'details': ble_error
-            },
-            status=status.HTTP_503_SERVICE_UNAVAILABLE
-        )
+                    'error': 'Could not start BLE beacon',
+                    'details': ble_error
                 },
                 status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
@@ -416,6 +408,9 @@ class MarkAttendanceView(APIView):
 
         student_id = request.data.get('student_id')
         qr_token = request.data.get('qr_token')
+        face_proof = request.data.get(
+            'face_proof'
+        )
         ble_verified = request.data.get(
             'ble_verified',
             False
@@ -479,6 +474,56 @@ class MarkAttendanceView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # ----------------------------------------------------
+        # Validate face verification proof
+        # ----------------------------------------------------
+
+        if not face_proof:
+
+            return Response(
+                {
+                    'error': 'Face verification is required'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+
+            face_data = signing.loads(
+                face_proof,
+                max_age=120
+            )
+
+        except signing.BadSignature:
+
+            return Response(
+                {
+                    'error': (
+                        'Invalid or expired face verification'
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if (
+            face_data.get('student_id') != int(student_id)
+            or
+            face_data.get('session_id') != session.session_id
+            or
+            face_data.get('qr_token') != qr_token
+            or
+            face_data.get('face_verified') is not True
+        ):
+
+            return Response(
+                {
+                    'error': 'Face verification proof is invalid'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        face_verified = True
+
         # Check whether the student already marked attendance
         already_marked = Attendance.objects.filter(
             session_id=session.session_id,
@@ -499,7 +544,7 @@ class MarkAttendanceView(APIView):
             session_id=session.session_id,
             student_id=student_id,
             attendance_time=timezone.now(),
-            face_verified=False,
+            face_verified=face_verified,
             ble_verified=ble_verified,
             status='Present'
         )
@@ -1374,6 +1419,56 @@ class FaceVerificationView(APIView):
             )
 
         # ----------------------------------------------------
+        # Get attendance QR token
+        # ----------------------------------------------------
+
+        qr_token = request.data.get(
+            'qr_token'
+        )
+
+        if not qr_token:
+
+            return Response(
+                {
+                    'error': 'QR token is required'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+                # ----------------------------------------------------
+        # Validate attendance session
+        # ----------------------------------------------------
+
+        try:
+
+            session = AttendanceSession.objects.get(
+                qr_token=qr_token,
+                status='Running'
+            )
+
+        except AttendanceSession.DoesNotExist:
+
+            return Response(
+                {
+                    'error': 'Invalid or inactive QR code'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ----------------------------------------------------
+        # Check whether the session has expired
+        # ----------------------------------------------------
+
+        if expire_session_if_needed(session):
+
+            return Response(
+                {
+                    'error': 'QR code has expired'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ----------------------------------------------------
         # Get live face image
         # ----------------------------------------------------
 
@@ -1632,29 +1727,47 @@ class FaceVerificationView(APIView):
             # Return verification result
             # ------------------------------------------------
 
+            verified = verification_result.get(
+                'verified',
+                False
+            )
+
+            response_data = {
+                'verified': verified,
+
+                'matched_view':
+                    verification_result.get(
+                        'matched_view'
+                    ),
+
+                'distance':
+                    verification_result.get(
+                        'distance'
+                    ),
+
+                'tolerance':
+                    verification_result.get(
+                        'tolerance'
+                    ),
+            }
+
+            # ------------------------------------------------
+            # Create signed face verification proof
+            # ------------------------------------------------
+
+            if verified:
+
+                response_data['face_proof'] = signing.dumps(
+                    {
+                        'student_id': student.student_id,
+                        'session_id': session.session_id,
+                        'qr_token': qr_token,
+                        'face_verified': True,
+                    }
+                )
+
             return Response(
-                {
-                    'verified':
-                        verification_result.get(
-                            'verified',
-                            False
-                        ),
-
-                    'matched_view':
-                        verification_result.get(
-                            'matched_view'
-                        ),
-
-                    'distance':
-                        verification_result.get(
-                            'distance'
-                        ),
-
-                    'tolerance':
-                        verification_result.get(
-                            'tolerance'
-                        ),
-                },
+                response_data,
                 status=status.HTTP_200_OK
             )
 
